@@ -9,21 +9,32 @@ const RATIOS = {
 const TEMPLATE_KEY = "aleph_t03_templates_v1";
 const SUPPORTED_TYPES = ["image/png", "image/jpeg"];
 
+/* ---------- Layers ---------- */
+let layerIdCounter = 0;
+function makeLayer(overrides) {
+  layerIdCounter += 1;
+  return Object.assign({
+    id: `layer_${Date.now()}_${layerIdCounter}_${Math.random().toString(36).slice(2, 6)}`,
+    text: "",
+    posX: 50,
+    posY: 85,
+    fontSize: 7,
+    fontFamily: "system",
+    color: "#ffffff",
+    align: "center",
+    stroke: true,
+    glow: false,
+    opacity: 100,
+  }, overrides || {});
+}
+
 /* ---------- State ---------- */
 let state = {
   image: null,        // HTMLImageElement
   imageName: "",
   imageDims: "",
-  text: "",
-  posX: 50,
-  posY: 85,
-  fontSize: 7,
-  fontFamily: "system",
-  color: "#ffffff",
-  align: "center",
-  stroke: true,
-  glow: false,
-  opacity: 100,
+  layers: [makeLayer()],
+  activeLayerId: null, // set right after, once the first layer's id exists
   overlayEnabled: false,
   overlayDirection: "bottom",
   overlayOpacity: 55,
@@ -33,8 +44,30 @@ let state = {
   saturate: 100,
   ratio: "1:1",
 };
+state.activeLayerId = state.layers[0].id;
 
-const DEFAULT_STATE = JSON.parse(JSON.stringify(state));
+function getActiveLayer() {
+  return state.layers.find((l) => l.id === state.activeLayerId) || state.layers[0];
+}
+
+function makeDefaultState() {
+  const layer = makeLayer();
+  return {
+    image: null,
+    imageName: "",
+    imageDims: "",
+    layers: [layer],
+    activeLayerId: layer.id,
+    overlayEnabled: false,
+    overlayDirection: "bottom",
+    overlayOpacity: 55,
+    bgColor: "#111318",
+    grayscale: false,
+    brightness: 100,
+    saturate: 100,
+    ratio: "1:1",
+  };
+}
 
 /* ---------- Undo history ---------- */
 const undoStack = [];
@@ -47,6 +80,9 @@ function undo() {
   const prev = undoStack.pop();
   if (!prev) { showToast("되돌릴 내용이 없습니다.", "info"); return; }
   Object.assign(state, prev);
+  if (!state.layers.some((l) => l.id === state.activeLayerId)) {
+    state.activeLayerId = state.layers[0] ? state.layers[0].id : null;
+  }
   syncControlsFromState();
   draw();
   showToast("되돌렸습니다.", "info");
@@ -68,6 +104,9 @@ const imagePreviewDims = $("imagePreviewDims");
 const imageRemoveBtn = $("imageRemoveBtn");
 const imageHint = $("imageHint");
 
+const layerList = $("layerList");
+const addLayerBtn = $("addLayerBtn");
+const duplicateLayerBtn = $("duplicateLayerBtn");
 const textInput = $("textInput");
 const textCharCount = $("textCharCount");
 const quickPhrases = $("quickPhrases");
@@ -137,8 +176,10 @@ function draw(opts) {
     drawOverlay(w, h);
   }
 
-  if (state.text && state.text.trim().length > 0) {
-    drawText(w, h);
+  for (const layer of state.layers) {
+    if (layer.text && layer.text.trim().length > 0) {
+      drawTextLayer(layer, w, h);
+    }
   }
 
   if (opts && opts.guides) {
@@ -261,45 +302,81 @@ function wrapLines(text, maxWidth) {
   return out;
 }
 
-function drawText(w, h) {
-  const fsPx = Math.max(8, (state.fontSize / 100) * w);
-  const family = state.fontFamily === "system"
+// Shared geometry for a single layer, used both to render it and to hit-test
+// clicks/drags against it (so the two never fall out of sync).
+function measureLayer(layer, w, h) {
+  const fsPx = Math.max(8, (layer.fontSize / 100) * w);
+  const family = layer.fontFamily === "system"
     ? '-apple-system, "Malgun Gothic", sans-serif'
-    : state.fontFamily;
+    : layer.fontFamily;
   ctx.font = `bold ${fsPx}px ${family}`;
-  ctx.textAlign = state.align;
+  const maxWidth = w * 0.9;
+  const lines = wrapLines(layer.text, maxWidth);
+  const lineHeight = fsPx * 1.25;
+  const totalHeight = lineHeight * lines.length;
+  let maxLineWidth = 0;
+  for (const line of lines) {
+    maxLineWidth = Math.max(maxLineWidth, ctx.measureText(line).width);
+  }
+  const cx = (layer.posX / 100) * w;
+  const cyTop = (layer.posY / 100) * h - totalHeight / 2;
+  return { fsPx, family, lines, lineHeight, totalHeight, maxLineWidth, cx, cyTop };
+}
+
+function drawTextLayer(layer, w, h) {
+  const geom = measureLayer(layer, w, h);
+  ctx.font = `bold ${geom.fsPx}px ${geom.family}`;
+  ctx.textAlign = layer.align;
   ctx.textBaseline = "middle";
-  ctx.fillStyle = state.color;
+  ctx.fillStyle = layer.color;
   ctx.strokeStyle = "rgba(0,0,0,0.85)";
-  ctx.lineWidth = Math.max(2, fsPx * 0.12);
-  ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity / 100));
-  if (state.glow) {
+  ctx.lineWidth = Math.max(2, geom.fsPx * 0.12);
+  ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity / 100));
+  if (layer.glow) {
     ctx.shadowColor = "rgba(0,0,0,0.6)";
-    ctx.shadowBlur = fsPx * 0.25;
-    ctx.shadowOffsetY = fsPx * 0.06;
+    ctx.shadowBlur = geom.fsPx * 0.25;
+    ctx.shadowOffsetY = geom.fsPx * 0.06;
   } else {
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
   }
 
-  const maxWidth = w * 0.9;
-  const lines = wrapLines(state.text, maxWidth);
-  const lineHeight = fsPx * 1.25;
-  const totalHeight = lineHeight * lines.length;
-
-  const cx = (state.posX / 100) * w;
-  let cy = (state.posY / 100) * h - totalHeight / 2 + lineHeight / 2;
-
-  for (const line of lines) {
-    if (state.stroke) ctx.strokeText(line, cx, cy);
-    ctx.fillText(line, cx, cy);
-    cy += lineHeight;
+  let cy = geom.cyTop + geom.lineHeight / 2;
+  for (const line of geom.lines) {
+    if (layer.stroke) ctx.strokeText(line, geom.cx, cy);
+    ctx.fillText(line, geom.cx, cy);
+    cy += geom.lineHeight;
   }
   ctx.globalAlpha = 1;
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
+}
+
+// Returns the topmost (last-drawn) layer whose text bounding box contains
+// the given canvas-pixel point, or null if none was hit.
+function hitTestLayers(px, py, w, h) {
+  for (let i = state.layers.length - 1; i >= 0; i -= 1) {
+    const layer = state.layers[i];
+    if (!layer.text || !layer.text.trim()) continue;
+    const geom = measureLayer(layer, w, h);
+    let left, right;
+    if (layer.align === "left") {
+      left = geom.cx; right = geom.cx + geom.maxLineWidth;
+    } else if (layer.align === "right") {
+      left = geom.cx - geom.maxLineWidth; right = geom.cx;
+    } else {
+      left = geom.cx - geom.maxLineWidth / 2; right = geom.cx + geom.maxLineWidth / 2;
+    }
+    const pad = Math.max(12, geom.fsPx * 0.3);
+    const top = geom.cyTop - pad;
+    const bottom = geom.cyTop + geom.totalHeight + pad;
+    if (px >= left - pad && px <= right + pad && py >= top && py <= bottom) {
+      return layer;
+    }
+  }
+  return null;
 }
 
 /* ---------- Image load ---------- */
@@ -364,18 +441,20 @@ imageRemoveBtn.addEventListener("click", () => {
   draw();
 });
 
-/* ---------- Text / style controls ---------- */
+/* ---------- Text / style controls (apply to the active layer) ---------- */
 textInput.addEventListener("input", () => {
-  state.text = textInput.value;
-  textCharCount.textContent = state.text.length;
+  getActiveLayer().text = textInput.value;
+  textCharCount.textContent = textInput.value.length;
+  renderLayerList();
   draw();
 });
 quickPhrases.addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (!chip) return;
   textInput.value = chip.dataset.text;
-  state.text = chip.dataset.text;
-  textCharCount.textContent = state.text.length;
+  getActiveLayer().text = chip.dataset.text;
+  textCharCount.textContent = textInput.value.length;
+  renderLayerList();
   draw();
   textInput.focus();
 });
@@ -403,8 +482,9 @@ function buildEmojiPicker() {
         return;
       }
       insertAtCursor(textInput, em);
-      state.text = textInput.value;
-      textCharCount.textContent = state.text.length;
+      getActiveLayer().text = textInput.value;
+      textCharCount.textContent = textInput.value.length;
+      renderLayerList();
       draw();
       textInput.focus();
     });
@@ -412,6 +492,113 @@ function buildEmojiPicker() {
   }
 }
 buildEmojiPicker();
+
+/* ---------- Layer manager (add/select/duplicate/delete, multiple text blocks) ---------- */
+function syncTextControlsFromActiveLayer() {
+  const layer = getActiveLayer();
+  textInput.value = layer.text;
+  textCharCount.textContent = layer.text.length;
+  posX.value = layer.posX; posXVal.textContent = layer.posX;
+  posY.value = layer.posY; posYVal.textContent = layer.posY;
+  fontSize.value = layer.fontSize; fontSizeVal.textContent = layer.fontSize;
+  fontFamily.value = layer.fontFamily;
+  textColor.value = layer.color;
+  textColorHex.textContent = layer.color.toUpperCase();
+  textAlign.value = layer.align;
+  textStroke.checked = layer.stroke;
+  textGlow.checked = layer.glow;
+  textOpacity.value = layer.opacity; textOpacityVal.textContent = layer.opacity;
+}
+
+function selectLayer(id) {
+  state.activeLayerId = id;
+  syncTextControlsFromActiveLayer();
+  renderLayerList();
+}
+
+function renderLayerList() {
+  layerList.innerHTML = "";
+  state.layers.forEach((layer, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "layer-chip" + (layer.id === state.activeLayerId ? " active" : "");
+    btn.setAttribute("role", "option");
+    btn.setAttribute("aria-selected", layer.id === state.activeLayerId ? "true" : "false");
+
+    const swatch = document.createElement("span");
+    swatch.className = "layer-swatch";
+    swatch.style.background = layer.color;
+
+    const label = document.createElement("span");
+    label.className = "layer-label";
+    label.textContent = layer.text.trim() ? layer.text.trim().slice(0, 24) : `레이어 ${idx + 1} (빈 문구)`;
+
+    const removeBtn = document.createElement("span");
+    removeBtn.className = "layer-remove";
+    removeBtn.setAttribute("role", "button");
+    removeBtn.setAttribute("tabindex", "0");
+    removeBtn.setAttribute("aria-label", `레이어 ${idx + 1} 삭제`);
+    removeBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    const doRemove = (e) => {
+      e.stopPropagation();
+      removeLayer(layer.id);
+    };
+    removeBtn.addEventListener("click", doRemove);
+    removeBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doRemove(e); }
+    });
+
+    btn.addEventListener("click", () => selectLayer(layer.id));
+    btn.append(swatch, label, removeBtn);
+    layerList.appendChild(btn);
+  });
+}
+
+function removeLayer(id) {
+  if (state.layers.length <= 1) {
+    showToast("레이어는 최소 1개가 필요합니다.", "error");
+    return;
+  }
+  snapshot();
+  const idx = state.layers.findIndex((l) => l.id === id);
+  state.layers = state.layers.filter((l) => l.id !== id);
+  if (state.activeLayerId === id) {
+    const next = state.layers[Math.max(0, idx - 1)] || state.layers[0];
+    state.activeLayerId = next.id;
+    syncTextControlsFromActiveLayer();
+  }
+  renderLayerList();
+  draw();
+}
+
+addLayerBtn.addEventListener("click", () => {
+  snapshot();
+  const layer = makeLayer({ text: "", posX: 50, posY: 50 });
+  state.layers.push(layer);
+  state.activeLayerId = layer.id;
+  syncTextControlsFromActiveLayer();
+  renderLayerList();
+  draw();
+  textInput.focus();
+  showToast("레이어를 추가했습니다.", "success");
+});
+
+duplicateLayerBtn.addEventListener("click", () => {
+  snapshot();
+  const source = getActiveLayer();
+  const { id: _sourceId, ...sourceStyle } = source;
+  const copy = makeLayer({
+    ...sourceStyle,
+    posX: Math.min(100, source.posX + 4),
+    posY: Math.min(100, source.posY + 4),
+  });
+  state.layers.push(copy);
+  state.activeLayerId = copy.id;
+  syncTextControlsFromActiveLayer();
+  renderLayerList();
+  draw();
+  showToast("레이어를 복제했습니다.", "success");
+});
 
 /* ---------- Sample background swatches (no upload needed) ---------- */
 const SAMPLE_SWATCHES = [
@@ -476,40 +663,41 @@ tabButtons.forEach((btn) => {
   });
 });
 posX.addEventListener("input", () => {
-  state.posX = Number(posX.value);
-  posXVal.textContent = state.posX;
+  getActiveLayer().posX = Number(posX.value);
+  posXVal.textContent = posX.value;
   draw();
 });
 posY.addEventListener("input", () => {
-  state.posY = Number(posY.value);
-  posYVal.textContent = state.posY;
+  getActiveLayer().posY = Number(posY.value);
+  posYVal.textContent = posY.value;
   draw();
 });
 fontSize.addEventListener("input", () => {
-  state.fontSize = Number(fontSize.value);
-  fontSizeVal.textContent = state.fontSize;
+  getActiveLayer().fontSize = Number(fontSize.value);
+  fontSizeVal.textContent = fontSize.value;
   draw();
 });
 fontFamily.addEventListener("change", () => {
-  state.fontFamily = fontFamily.value;
+  getActiveLayer().fontFamily = fontFamily.value;
   draw();
 });
 textColor.addEventListener("input", () => {
-  state.color = textColor.value;
-  textColorHex.textContent = state.color.toUpperCase();
+  getActiveLayer().color = textColor.value;
+  textColorHex.textContent = textColor.value.toUpperCase();
+  renderLayerList();
   draw();
 });
 textAlign.addEventListener("change", () => {
-  state.align = textAlign.value;
+  getActiveLayer().align = textAlign.value;
   draw();
 });
 textOpacity.addEventListener("input", () => {
-  state.opacity = Number(textOpacity.value);
-  textOpacityVal.textContent = state.opacity;
+  getActiveLayer().opacity = Number(textOpacity.value);
+  textOpacityVal.textContent = textOpacity.value;
   draw();
 });
 textStroke.addEventListener("change", () => {
-  state.stroke = textStroke.checked;
+  getActiveLayer().stroke = textStroke.checked;
   draw();
 });
 overlayEnabled.addEventListener("change", () => {
@@ -527,7 +715,7 @@ overlayOpacity.addEventListener("input", () => {
   draw();
 });
 textGlow.addEventListener("change", () => {
-  state.glow = textGlow.checked;
+  getActiveLayer().glow = textGlow.checked;
   draw();
 });
 bgColor.addEventListener("input", () => {
@@ -567,7 +755,7 @@ function showToast(message, type) {
 resetBtn.addEventListener("click", () => {
   if (!confirm("모든 편집 내용을 초기화할까요? 저장된 템플릿은 유지됩니다.")) return;
   snapshot();
-  state = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), image: null };
+  state = makeDefaultState();
   imageInput.value = "";
   imagePreview.hidden = true;
   imageHint.hidden = false;
@@ -580,6 +768,7 @@ resetBtn.addEventListener("click", () => {
 /* ---------- Drag text directly on canvas (with center snap) ---------- */
 const SNAP_THRESHOLD = 3; // percent
 let dragging = false;
+let dragLayerId = null;
 function canvasPointToPercent(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const px = ((clientX - rect.left) / rect.width) * 100;
@@ -589,20 +778,38 @@ function canvasPointToPercent(clientX, clientY) {
     y: Math.max(0, Math.min(100, py)),
   };
 }
+function canvasPointToPixels(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY,
+  };
+}
 function applyDragPoint(clientX, clientY) {
+  const layer = state.layers.find((l) => l.id === dragLayerId);
+  if (!layer) return;
   const p = canvasPointToPercent(clientX, clientY);
   const snapX = Math.abs(p.x - 50) < SNAP_THRESHOLD;
   const snapY = Math.abs(p.y - 50) < SNAP_THRESHOLD;
-  state.posX = Math.round(snapX ? 50 : p.x);
-  state.posY = Math.round(snapY ? 50 : p.y);
-  posX.value = state.posX; posXVal.textContent = state.posX;
-  posY.value = state.posY; posYVal.textContent = state.posY;
+  layer.posX = Math.round(snapX ? 50 : p.x);
+  layer.posY = Math.round(snapY ? 50 : p.y);
+  if (layer.id === state.activeLayerId) {
+    posX.value = layer.posX; posXVal.textContent = layer.posX;
+    posY.value = layer.posY; posYVal.textContent = layer.posY;
+  }
   draw({ guides: { x: snapX, y: snapY } });
 }
 canvas.addEventListener("pointerdown", (e) => {
-  if (!state.text) return;
+  const { w, h } = RATIOS[state.ratio];
+  const pt = canvasPointToPixels(e.clientX, e.clientY);
+  const hit = hitTestLayers(pt.x, pt.y, w, h);
+  if (!hit) return; // clicking empty canvas space does nothing
+  if (hit.id !== state.activeLayerId) selectLayer(hit.id);
   snapshot();
   dragging = true;
+  dragLayerId = hit.id;
   canvas.setPointerCapture(e.pointerId);
   canvas.classList.add("dragging");
   applyDragPoint(e.clientX, e.clientY);
@@ -614,6 +821,7 @@ canvas.addEventListener("pointermove", (e) => {
 function endDrag(e) {
   if (!dragging) return;
   dragging = false;
+  dragLayerId = null;
   canvas.classList.remove("dragging");
   if (e && e.pointerId !== undefined) {
     try { canvas.releasePointerCapture(e.pointerId); } catch { /* already released */ }
@@ -638,18 +846,19 @@ document.addEventListener("keydown", (e) => {
 });
 undoBtn.addEventListener("click", undo);
 
-/* ---------- Keyboard-only position nudge (canvas focused) ---------- */
+/* ---------- Keyboard-only position nudge (canvas focused, moves the active layer) ---------- */
 canvas.addEventListener("keydown", (e) => {
   const ARROW_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-  if (!ARROW_KEYS.includes(e.key) || !state.text) return;
+  const layer = getActiveLayer();
+  if (!ARROW_KEYS.includes(e.key) || !layer || !layer.text) return;
   e.preventDefault();
   const step = e.shiftKey ? 5 : 1;
-  if (e.key === "ArrowLeft") state.posX = Math.max(0, state.posX - step);
-  if (e.key === "ArrowRight") state.posX = Math.min(100, state.posX + step);
-  if (e.key === "ArrowUp") state.posY = Math.max(0, state.posY - step);
-  if (e.key === "ArrowDown") state.posY = Math.min(100, state.posY + step);
-  posX.value = state.posX; posXVal.textContent = state.posX;
-  posY.value = state.posY; posYVal.textContent = state.posY;
+  if (e.key === "ArrowLeft") layer.posX = Math.max(0, layer.posX - step);
+  if (e.key === "ArrowRight") layer.posX = Math.min(100, layer.posX + step);
+  if (e.key === "ArrowUp") layer.posY = Math.max(0, layer.posY - step);
+  if (e.key === "ArrowDown") layer.posY = Math.min(100, layer.posY + step);
+  posX.value = layer.posX; posXVal.textContent = layer.posX;
+  posY.value = layer.posY; posYVal.textContent = layer.posY;
   draw();
 });
 
@@ -749,29 +958,29 @@ function currentStateAsTemplate(name, id, createdAt) {
     name,
     createdAt: createdAt || Date.now(),
     updatedAt: Date.now(),
-    text: state.text,
-    posX: state.posX,
-    posY: state.posY,
-    fontSize: state.fontSize,
-    fontFamily: state.fontFamily,
-    color: state.color,
-    align: state.align,
-    stroke: state.stroke,
-    glow: state.glow,
-    opacity: state.opacity,
+    layers: state.layers.map(({ id: _layerId, ...style }) => style),
     overlayEnabled: state.overlayEnabled,
     overlayDirection: state.overlayDirection,
     overlayOpacity: state.overlayOpacity,
     bgColor: state.bgColor,
+    grayscale: state.grayscale,
+    brightness: state.brightness,
+    saturate: state.saturate,
     ratio: state.ratio,
   };
 }
 
-const REQUIRED_TEMPLATE_FIELDS = ["id", "name", "text", "posX", "posY", "fontSize", "color", "align", "ratio"];
+const REQUIRED_TEMPLATE_FIELDS = ["id", "name", "layers", "ratio"];
+const REQUIRED_LAYER_FIELDS = ["text", "posX", "posY", "fontSize", "color", "align"];
 
 function isValidTemplate(t) {
   if (!t || typeof t !== "object") return false;
-  return REQUIRED_TEMPLATE_FIELDS.every((f) => Object.prototype.hasOwnProperty.call(t, f));
+  if (!REQUIRED_TEMPLATE_FIELDS.every((f) => Object.prototype.hasOwnProperty.call(t, f))) return false;
+  if (!Array.isArray(t.layers) || t.layers.length === 0) return false;
+  return t.layers.every((layer) =>
+    layer && typeof layer === "object" &&
+    REQUIRED_LAYER_FIELDS.every((f) => Object.prototype.hasOwnProperty.call(layer, f))
+  );
 }
 
 function renderTemplateList() {
@@ -859,18 +1068,8 @@ function renderTemplateList() {
 }
 
 function syncControlsFromState() {
-  textInput.value = state.text;
-  textCharCount.textContent = state.text.length;
-  posX.value = state.posX; posXVal.textContent = state.posX;
-  posY.value = state.posY; posYVal.textContent = state.posY;
-  fontSize.value = state.fontSize; fontSizeVal.textContent = state.fontSize;
-  fontFamily.value = state.fontFamily;
-  textColor.value = state.color;
-  textColorHex.textContent = state.color.toUpperCase();
-  textAlign.value = state.align;
-  textStroke.checked = state.stroke;
-  textGlow.checked = state.glow;
-  textOpacity.value = state.opacity; textOpacityVal.textContent = state.opacity;
+  renderLayerList();
+  syncTextControlsFromActiveLayer();
   overlayEnabled.checked = state.overlayEnabled;
   overlayOptions.hidden = !state.overlayEnabled;
   overlayDirection.value = state.overlayDirection;
@@ -883,16 +1082,21 @@ function syncControlsFromState() {
 }
 
 function applyTemplate(t) {
-  state.text = t.text;
-  state.posX = t.posX;
-  state.posY = t.posY;
-  state.fontSize = t.fontSize;
-  state.fontFamily = t.fontFamily || "system";
-  state.color = t.color;
-  state.align = t.align;
-  state.stroke = t.stroke !== undefined ? t.stroke : true;
-  state.glow = t.glow !== undefined ? t.glow : false;
-  state.opacity = t.opacity !== undefined ? t.opacity : 100;
+  // Restore each saved layer as a fresh layer object (new runtime id, since
+  // stored templates don't keep per-layer ids — see currentStateAsTemplate).
+  state.layers = t.layers.map((style) => makeLayer({
+    text: style.text || "",
+    posX: style.posX,
+    posY: style.posY,
+    fontSize: style.fontSize,
+    fontFamily: style.fontFamily || "system",
+    color: style.color,
+    align: style.align,
+    stroke: style.stroke !== undefined ? style.stroke : true,
+    glow: style.glow !== undefined ? style.glow : false,
+    opacity: style.opacity !== undefined ? style.opacity : 100,
+  }));
+  state.activeLayerId = state.layers[0].id;
   state.overlayEnabled = t.overlayEnabled !== undefined ? t.overlayEnabled : false;
   state.overlayDirection = t.overlayDirection || "bottom";
   state.overlayOpacity = t.overlayOpacity !== undefined ? t.overlayOpacity : 55;
@@ -1015,13 +1219,7 @@ themeToggleBtn.addEventListener("click", () => {
 
 /* ---------- Init ---------- */
 function init() {
-  posXVal.textContent = posX.value;
-  posYVal.textContent = posY.value;
-  fontSizeVal.textContent = fontSize.value;
-  textColorHex.textContent = textColor.value.toUpperCase();
-  textOpacityVal.textContent = textOpacity.value;
-  overlayOpacityVal.textContent = overlayOpacity.value;
-  textCharCount.textContent = textInput.value.length;
+  syncControlsFromState();
   let savedTheme = "light";
   try { savedTheme = localStorage.getItem(THEME_KEY) || "light"; } catch { /* storage unavailable */ }
   applyTheme(savedTheme);

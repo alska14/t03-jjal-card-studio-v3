@@ -260,6 +260,66 @@ select:focus-visible, textarea:focus-visible, label:focus-within,
 }
 .swatch-btn:hover { box-shadow: var(--shadow-md); border-color: var(--accent-soft); }
 
+/* ---------- Layers ---------- */
+.hint-inline { font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.layer-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 0;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 500;
+}
+.layer-chip:hover { border-color: var(--accent-soft); transform: none; box-shadow: none; }
+.layer-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.layer-chip .layer-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+}
+.layer-chip .layer-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.layer-chip .layer-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  border-radius: 50%;
+}
+.layer-chip .layer-remove:hover { color: var(--danger); background: var(--danger-bg); transform: none; }
+
 .emoji-row .emoji-chip {
   font-size: 16px;
   padding: 5px 9px;
