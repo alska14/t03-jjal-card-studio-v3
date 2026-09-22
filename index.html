@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>짤·카드 스튜디오</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>짤·카드 스튜디오</h1>
+  <p class="sub">이미지와 문구를 조합해 밈·카드·SNS 게시용 이미지를 만들고 파일로 내려받습니다.</p>
+</header>
+
+<main class="layout">
+  <!-- LEFT: Controls -->
+  <section class="panel controls" aria-label="편집 도구">
+    <div class="block">
+      <h2>1. 이미지 불러오기</h2>
+      <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,image/png,image/jpeg">
+      <p id="imageError" class="error" role="alert" hidden></p>
+      <p class="hint">PNG, JPEG 파일만 지원합니다.</p>
+    </div>
+
+    <div class="block">
+      <h2>2. 문구 편집</h2>
+      <label for="textInput">문구 (줄바꿈 가능)</label>
+      <textarea id="textInput" rows="3" placeholder="여기에 문구를 입력하세요"></textarea>
+
+      <label for="posX">가로 위치 <span id="posXVal"></span>%</label>
+      <input type="range" id="posX" min="0" max="100" value="50">
+
+      <label for="posY">세로 위치 <span id="posYVal"></span>%</label>
+      <input type="range" id="posY" min="0" max="100" value="85">
+
+      <label for="fontSize">글자 크기 <span id="fontSizeVal"></span>%</label>
+      <input type="range" id="fontSize" min="2" max="20" value="7">
+
+      <label for="textColor">글자 색</label>
+      <input type="color" id="textColor" value="#ffffff">
+
+      <label for="textAlign">정렬</label>
+      <select id="textAlign">
+        <option value="center" selected>가운데</option>
+        <option value="left">왼쪽</option>
+        <option value="right">오른쪽</option>
+      </select>
+
+      <label class="checkbox">
+        <input type="checkbox" id="textStroke" checked>
+        외곽선(가독성) 사용
+      </label>
+    </div>
+
+    <div class="block">
+      <h2>3. 화면비</h2>
+      <div class="ratio-buttons" role="group" aria-label="화면비 선택">
+        <button type="button" class="ratio-btn active" data-ratio="1:1">1:1</button>
+        <button type="button" class="ratio-btn" data-ratio="4:5">4:5</button>
+        <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>4. 내보내기</h2>
+      <label for="exportFormat">파일 형식</label>
+      <select id="exportFormat">
+        <option value="image/png" selected>PNG</option>
+        <option value="image/jpeg">JPEG</option>
+      </select>
+      <label class="checkbox">
+        <input type="checkbox" id="ownWork" checked>
+        본인 제작 이미지입니다
+      </label>
+      <div id="sourceBlock">
+        <label for="sourceUrl">원본 출처 URL (본인 제작이 아닌 경우)</label>
+        <input type="text" id="sourceUrl" placeholder="https://...">
+        <label for="licenseNote">사용 허가 근거</label>
+        <select id="licenseNote">
+          <option value="">선택하세요</option>
+          <option value="라이선스명">라이선스명 표기됨</option>
+          <option value="이용약관">이용약관상 허용됨</option>
+          <option value="수업제공">수업에서 제공된 자료</option>
+        </select>
+      </div>
+      <button type="button" id="downloadBtn" class="primary">이미지 다운로드</button>
+      <p class="hint">위치 정보(GPS) 등 메타데이터는 자동으로 제거됩니다.</p>
+    </div>
+  </section>
+
+  <!-- CENTER: Preview -->
+  <section class="panel preview-panel" aria-label="미리보기">
+    <h2>미리보기</h2>
+    <div class="canvas-wrap">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+    <p class="hint" id="canvasInfo"></p>
+  </section>
+
+  <!-- RIGHT: Templates -->
+  <section class="panel templates" aria-label="템플릿 관리">
+    <h2>템플릿</h2>
+    <div class="block">
+      <label for="templateName">템플릿 이름</label>
+      <input type="text" id="templateName" placeholder="예: 인사말 카드">
+      <button type="button" id="saveTemplateBtn">현재 설정을 새 템플릿으로 저장</button>
+    </div>
+
+    <ul id="templateList" class="template-list"></ul>
+
+    <div class="block">
+      <h2>JSON 백업</h2>
+      <button type="button" id="exportJsonBtn">템플릿 내보내기 (JSON)</button>
+      <label for="importJsonInput" class="file-btn">템플릿 불러오기 (JSON)</label>
+      <input type="file" id="importJsonInput" accept="application/json,.json" hidden>
+      <p id="jsonError" class="error" role="alert" hidden></p>
+      <p id="jsonSuccess" class="success" role="status" hidden></p>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
