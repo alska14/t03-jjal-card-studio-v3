@@ -92,6 +92,7 @@ const imageGrayscale = $("imageGrayscale");
 const imageBrightness = $("imageBrightness"), imageBrightnessVal = $("imageBrightnessVal");
 const imageSaturate = $("imageSaturate"), imageSaturateVal = $("imageSaturateVal");
 const resetBtn = $("resetBtn");
+const themeToggleBtn = $("themeToggleBtn");
 const undoBtn = $("undoBtn");
 const ratioButtons = document.querySelectorAll(".ratio-btn");
 const canvasInfo = $("canvasInfo");
@@ -108,6 +109,9 @@ const downloadAllBtn = $("downloadAllBtn");
 const templateName = $("templateName");
 const saveTemplateBtn = $("saveTemplateBtn");
 const templateList = $("templateList");
+const templateSearch = $("templateSearch");
+const templateSort = $("templateSort");
+const templateCount = $("templateCount");
 const exportJsonBtn = $("exportJsonBtn");
 const importJsonInput = $("importJsonInput");
 const jsonError = $("jsonError");
@@ -739,10 +743,12 @@ function saveTemplates(list) {
   localStorage.setItem(TEMPLATE_KEY, JSON.stringify(list));
 }
 
-function currentStateAsTemplate(name, id) {
+function currentStateAsTemplate(name, id, createdAt) {
   return {
     id: id || `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name,
+    createdAt: createdAt || Date.now(),
+    updatedAt: Date.now(),
     text: state.text,
     posX: state.posX,
     posY: state.posY,
@@ -769,12 +775,30 @@ function isValidTemplate(t) {
 }
 
 function renderTemplateList() {
-  const templates = loadTemplates();
+  const all = loadTemplates();
+  templateCount.textContent = all.length;
+
+  const query = templateSearch.value.trim().toLowerCase();
+  let templates = query ? all.filter((t) => t.name.toLowerCase().includes(query)) : all.slice();
+
+  if (templateSort.value === "name") {
+    templates.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  } else {
+    templates.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }
+
   templateList.innerHTML = "";
+  if (all.length === 0) {
+    const li = document.createElement("li");
+    li.className = "t-empty";
+    li.textContent = "저장된 템플릿이 없습니다. 왼쪽에서 설정을 마친 뒤 저장해보세요.";
+    templateList.appendChild(li);
+    return;
+  }
   if (templates.length === 0) {
     const li = document.createElement("li");
     li.className = "t-empty";
-    li.textContent = "저장된 템플릿이 없습니다.";
+    li.textContent = `"${templateSearch.value}"와(과) 일치하는 템플릿이 없습니다.`;
     templateList.appendChild(li);
     return;
   }
@@ -893,7 +917,7 @@ saveTemplateBtn.addEventListener("click", () => {
   if (editingTemplateId) {
     const idx = list.findIndex((x) => x.id === editingTemplateId);
     if (idx !== -1) {
-      list[idx] = currentStateAsTemplate(name, editingTemplateId);
+      list[idx] = currentStateAsTemplate(name, editingTemplateId, list[idx].createdAt);
     } else {
       list.push(currentStateAsTemplate(name));
     }
@@ -966,6 +990,29 @@ importJsonInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
+templateSearch.addEventListener("input", renderTemplateList);
+templateSort.addEventListener("change", renderTemplateList);
+
+/* ---------- Dark mode toggle ---------- */
+const THEME_KEY = "aleph_t03_theme";
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    themeToggleBtn.setAttribute("aria-pressed", "true");
+    themeToggleBtn.setAttribute("aria-label", "밝은 화면으로 전환");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    themeToggleBtn.setAttribute("aria-pressed", "false");
+    themeToggleBtn.setAttribute("aria-label", "어두운 화면으로 전환");
+  }
+}
+themeToggleBtn.addEventListener("click", () => {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const next = isDark ? "light" : "dark";
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* storage unavailable */ }
+});
+
 /* ---------- Init ---------- */
 function init() {
   posXVal.textContent = posX.value;
@@ -975,6 +1022,9 @@ function init() {
   textOpacityVal.textContent = textOpacity.value;
   overlayOpacityVal.textContent = overlayOpacity.value;
   textCharCount.textContent = textInput.value.length;
+  let savedTheme = "light";
+  try { savedTheme = localStorage.getItem(THEME_KEY) || "light"; } catch { /* storage unavailable */ }
+  applyTheme(savedTheme);
   renderTemplateList();
   draw();
 }

@@ -28,6 +28,24 @@
   --font-body: "Work Sans", -apple-system, "Malgun Gothic", sans-serif;
 }
 
+:root[data-theme="dark"] {
+  --bg: #18181B;
+  --surface: #1F1F23;
+  --panel: #232327;
+  --panel-raised: #2A2A2F;
+  --border: #313136;
+  --border-strong: #3F3F46;
+  --text: #F4F4F5;
+  --muted: #A1A1AA;
+  --accent-wash: #3B1230;
+  --danger-bg: #3B1212;
+  --success-bg: #0F2E22;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.5);
+}
+
 * { box-sizing: border-box; }
 
 html, body { height: 100%; }
@@ -133,6 +151,15 @@ select:focus-visible, textarea:focus-visible, label:focus-within,
   color: var(--muted);
 }
 .ghost-btn:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-bg); box-shadow: none; transform: none; }
+.ghost-btn.icon-only {
+  padding: 7px;
+  width: 32px;
+  min-height: 32px;
+}
+.ghost-btn.icon-only:hover { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-wash); }
+.theme-icon-moon { display: none; }
+:root[data-theme="dark"] .theme-icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon-moon { display: block; }
 
 .toolbar h1 {
   margin: 0;
@@ -164,6 +191,10 @@ select:focus-visible, textarea:focus-visible, label:focus-within,
 @media (max-width: 720px) {
   .layout { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
   .toolbar { padding: 10px 16px; }
+  .toolbar-actions { width: 100%; flex-wrap: wrap; }
+  .ratio-buttons { order: 1; flex: 1 1 100%; }
+  .ghost-btn span { display: none; }
+  .ghost-btn { width: 32px; padding: 7px; }
 }
 
 .sidebar {
@@ -200,9 +231,9 @@ select:focus-visible, textarea:focus-visible, label:focus-within,
   color: var(--muted);
   border-radius: 7px;
 }
-.tab-btn:hover { background: #fff; color: var(--text); box-shadow: var(--shadow-xs); transform: none; }
+.tab-btn:hover { background: var(--panel); color: var(--text); box-shadow: var(--shadow-xs); transform: none; }
 .tab-btn.active {
-  background: #fff;
+  background: var(--panel);
   color: var(--accent);
   box-shadow: var(--shadow-sm);
   font-weight: 700;
@@ -507,7 +538,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
   padding: 6px 14px;
   box-shadow: none;
 }
-.ratio-btn:hover { background: #fff; box-shadow: var(--shadow-xs); transform: none; }
+.ratio-btn:hover { background: var(--panel); box-shadow: var(--shadow-xs); transform: none; }
 .ratio-btn.active {
   background: var(--accent);
   color: #fff;
@@ -615,6 +646,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
   transition: transform var(--motion), box-shadow var(--motion);
 }
 .gallery-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.gallery-item picture { display: block; }
 .gallery-item img {
   width: 100%;
   aspect-ratio: 4 / 5;
