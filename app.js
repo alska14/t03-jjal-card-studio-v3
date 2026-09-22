@@ -22,12 +22,16 @@ let state = {
   color: "#ffffff",
   align: "center",
   stroke: true,
+  glow: false,
   opacity: 100,
   overlayEnabled: false,
   overlayDirection: "bottom",
   overlayOpacity: 55,
+  bgColor: "#111318",
   ratio: "1:1",
 };
+
+const DEFAULT_STATE = JSON.parse(JSON.stringify(state));
 
 let editingTemplateId = null; // if set, "save" updates this template instead of creating new
 
@@ -61,8 +65,12 @@ const overlayEnabled = $("overlayEnabled");
 const overlayOptions = $("overlayOptions");
 const overlayDirection = $("overlayDirection");
 const overlayOpacity = $("overlayOpacity"), overlayOpacityVal = $("overlayOpacityVal");
+const textGlow = $("textGlow");
+const bgColor = $("bgColor");
+const resetBtn = $("resetBtn");
 const ratioButtons = document.querySelectorAll(".ratio-btn");
 const canvasInfo = $("canvasInfo");
+const toastContainer = $("toastContainer");
 
 const ownWork = $("ownWork");
 const sourceBlock = $("sourceBlock");
@@ -88,7 +96,7 @@ function draw() {
   ctx.clearRect(0, 0, w, h);
 
   // background
-  ctx.fillStyle = "#111318";
+  ctx.fillStyle = state.bgColor;
   ctx.fillRect(0, 0, w, h);
 
   if (state.image) {
@@ -205,6 +213,15 @@ function drawText(w, h) {
   ctx.strokeStyle = "rgba(0,0,0,0.85)";
   ctx.lineWidth = Math.max(2, fsPx * 0.12);
   ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity / 100));
+  if (state.glow) {
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = fsPx * 0.25;
+    ctx.shadowOffsetY = fsPx * 0.06;
+  } else {
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+  }
 
   const maxWidth = w * 0.9;
   const lines = wrapLines(state.text, maxWidth);
@@ -220,6 +237,9 @@ function drawText(w, h) {
     cy += lineHeight;
   }
   ctx.globalAlpha = 1;
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 /* ---------- Image load ---------- */
@@ -350,6 +370,108 @@ overlayOpacity.addEventListener("input", () => {
   overlayOpacityVal.textContent = state.overlayOpacity;
   draw();
 });
+textGlow.addEventListener("change", () => {
+  state.glow = textGlow.checked;
+  draw();
+});
+bgColor.addEventListener("input", () => {
+  state.bgColor = bgColor.value;
+  draw();
+});
+
+/* ---------- Toast notifications ---------- */
+function showToast(message, type) {
+  const el = document.createElement("div");
+  el.className = `toast toast-${type || "info"}`;
+  el.textContent = message;
+  el.setAttribute("role", "status");
+  toastContainer.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 250);
+  }, 2800);
+}
+
+/* ---------- Reset ---------- */
+resetBtn.addEventListener("click", () => {
+  if (!confirm("모든 편집 내용을 초기화할까요? 저장된 템플릿은 유지됩니다.")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  imageInput.value = "";
+  imagePreview.hidden = true;
+  imageHint.hidden = false;
+  imageError.hidden = true;
+  textInput.value = "";
+  textCharCount.textContent = "0";
+  posX.value = state.posX; posXVal.textContent = state.posX;
+  posY.value = state.posY; posYVal.textContent = state.posY;
+  fontSize.value = state.fontSize; fontSizeVal.textContent = state.fontSize;
+  fontFamily.value = state.fontFamily;
+  textColor.value = state.color; textColorHex.textContent = state.color.toUpperCase();
+  textAlign.value = state.align;
+  textStroke.checked = state.stroke;
+  textGlow.checked = state.glow;
+  textOpacity.value = state.opacity; textOpacityVal.textContent = state.opacity;
+  overlayEnabled.checked = state.overlayEnabled;
+  overlayOptions.hidden = true;
+  overlayDirection.value = state.overlayDirection;
+  overlayOpacity.value = state.overlayOpacity; overlayOpacityVal.textContent = state.overlayOpacity;
+  bgColor.value = state.bgColor;
+  ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === state.ratio));
+  draw();
+  showToast("초기화했습니다.", "info");
+});
+
+/* ---------- Drag text directly on canvas ---------- */
+let dragging = false;
+function canvasPointToPercent(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const px = ((clientX - rect.left) / rect.width) * 100;
+  const py = ((clientY - rect.top) / rect.height) * 100;
+  return {
+    x: Math.max(0, Math.min(100, px)),
+    y: Math.max(0, Math.min(100, py)),
+  };
+}
+canvas.addEventListener("pointerdown", (e) => {
+  if (!state.text) return;
+  dragging = true;
+  canvas.setPointerCapture(e.pointerId);
+  canvas.classList.add("dragging");
+  const p = canvasPointToPercent(e.clientX, e.clientY);
+  state.posX = Math.round(p.x);
+  state.posY = Math.round(p.y);
+  posX.value = state.posX; posXVal.textContent = state.posX;
+  posY.value = state.posY; posYVal.textContent = state.posY;
+  draw();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const p = canvasPointToPercent(e.clientX, e.clientY);
+  state.posX = Math.round(p.x);
+  state.posY = Math.round(p.y);
+  posX.value = state.posX; posXVal.textContent = state.posX;
+  posY.value = state.posY; posYVal.textContent = state.posY;
+  draw();
+});
+function endDrag(e) {
+  if (!dragging) return;
+  dragging = false;
+  canvas.classList.remove("dragging");
+  if (e && e.pointerId !== undefined) {
+    try { canvas.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+  }
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+/* ---------- Keyboard shortcut ---------- */
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    downloadBtn.click();
+  }
+});
 
 ratioButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -369,7 +491,8 @@ sourceBlock.style.display = ownWork.checked ? "none" : "block";
 downloadBtn.addEventListener("click", () => {
   if (!ownWork.checked) {
     if (!sourceUrl.value.trim() || !licenseNote.value) {
-      alert("본인 제작이 아닌 경우, 원본 출처 URL과 사용 허가 근거를 입력해야 합니다.");
+      showToast("본인 제작이 아닌 경우, 원본 출처 URL과 사용 허가 근거를 입력해야 합니다.", "error");
+      sourceUrl.focus();
       return;
     }
   }
@@ -379,7 +502,7 @@ downloadBtn.addEventListener("click", () => {
   canvas.toBlob((blob) => {
     downloadBtn.disabled = false;
     if (!blob) {
-      alert("이미지 생성에 실패했습니다.");
+      showToast("이미지 생성에 실패했습니다.", "error");
       return;
     }
     const url = URL.createObjectURL(blob);
@@ -390,6 +513,7 @@ downloadBtn.addEventListener("click", () => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    showToast("다운로드했습니다.", "success");
   }, format, 0.95);
 });
 
@@ -422,10 +546,12 @@ function currentStateAsTemplate(name, id) {
     color: state.color,
     align: state.align,
     stroke: state.stroke,
+    glow: state.glow,
     opacity: state.opacity,
     overlayEnabled: state.overlayEnabled,
     overlayDirection: state.overlayDirection,
     overlayOpacity: state.overlayOpacity,
+    bgColor: state.bgColor,
     ratio: state.ratio,
   };
 }
@@ -481,6 +607,7 @@ function renderTemplateList() {
       saveTemplates(list);
       if (editingTemplateId === t.id) editingTemplateId = null;
       renderTemplateList();
+      showToast(`"${t.name}" 템플릿을 삭제했습니다.`, "info");
     });
 
     actions.append(loadBtn, editBtn, delBtn);
@@ -498,10 +625,12 @@ function applyTemplate(t) {
   state.color = t.color;
   state.align = t.align;
   state.stroke = t.stroke !== undefined ? t.stroke : true;
+  state.glow = t.glow !== undefined ? t.glow : false;
   state.opacity = t.opacity !== undefined ? t.opacity : 100;
   state.overlayEnabled = t.overlayEnabled !== undefined ? t.overlayEnabled : false;
   state.overlayDirection = t.overlayDirection || "bottom";
   state.overlayOpacity = t.overlayOpacity !== undefined ? t.overlayOpacity : 55;
+  state.bgColor = t.bgColor || "#111318";
   state.ratio = RATIOS[t.ratio] ? t.ratio : "1:1";
 
   textInput.value = state.text;
@@ -514,11 +643,13 @@ function applyTemplate(t) {
   textColorHex.textContent = state.color.toUpperCase();
   textAlign.value = state.align;
   textStroke.checked = state.stroke;
+  textGlow.checked = state.glow;
   textOpacity.value = state.opacity; textOpacityVal.textContent = state.opacity;
   overlayEnabled.checked = state.overlayEnabled;
   overlayOptions.hidden = !state.overlayEnabled;
   overlayDirection.value = state.overlayDirection;
   overlayOpacity.value = state.overlayOpacity; overlayOpacityVal.textContent = state.overlayOpacity;
+  bgColor.value = state.bgColor;
   ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === state.ratio));
 
   draw();
@@ -527,7 +658,8 @@ function applyTemplate(t) {
 saveTemplateBtn.addEventListener("click", () => {
   const name = templateName.value.trim();
   if (!name) {
-    alert("템플릿 이름을 입력하세요.");
+    showToast("템플릿 이름을 입력하세요.", "error");
+    templateName.focus();
     return;
   }
   const list = loadTemplates();
@@ -539,8 +671,10 @@ saveTemplateBtn.addEventListener("click", () => {
       list.push(currentStateAsTemplate(name));
     }
     editingTemplateId = null;
+    showToast(`"${name}" 템플릿을 수정했습니다.`, "success");
   } else {
     list.push(currentStateAsTemplate(name));
+    showToast(`"${name}" 템플릿을 저장했습니다.`, "success");
   }
   saveTemplates(list);
   templateName.value = "";

@@ -26,10 +26,16 @@
       <p class="sub">이미지와 문구를 조합해 밈·카드·SNS 게시용 이미지를 만들고 파일로 내려받습니다.</p>
     </div>
   </div>
-  <div class="ratio-buttons" role="group" aria-label="화면비 선택">
-    <button type="button" class="ratio-btn active" data-ratio="1:1">1:1</button>
-    <button type="button" class="ratio-btn" data-ratio="4:5">4:5</button>
-    <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
+  <div class="toolbar-actions">
+    <div class="ratio-buttons" role="group" aria-label="화면비 선택">
+      <button type="button" class="ratio-btn active" data-ratio="1:1">1:1</button>
+      <button type="button" class="ratio-btn" data-ratio="4:5">4:5</button>
+      <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
+    </div>
+    <button type="button" id="resetBtn" class="ghost-btn" aria-label="편집 내용 초기화">
+      <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      초기화
+    </button>
   </div>
 </header>
 
@@ -44,7 +50,10 @@
       </label>
       <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="visually-hidden">
       <p id="imageError" class="error" role="alert" hidden></p>
-      <p class="hint" id="imageHint">PNG, JPEG 파일만 지원합니다.</p>
+      <p class="hint" id="imageHint">PNG, JPEG 파일만 지원합니다. 이미지 없으면 아래 배경색이 대신 쓰입니다.</p>
+
+      <label for="bgColor">배경색 (이미지 없을 때)</label>
+      <input type="color" id="bgColor" value="#111318">
 
       <div id="imagePreview" class="image-preview" hidden>
         <img id="imagePreviewThumb" alt="">
@@ -120,6 +129,11 @@
       </label>
 
       <label class="checkbox">
+        <input type="checkbox" id="textGlow">
+        부드러운 그림자(글로우) 사용
+      </label>
+
+      <label class="checkbox">
         <input type="checkbox" id="overlayEnabled">
         그라데이션 오버레이 사용
       </label>
@@ -178,6 +192,7 @@
       <canvas id="previewCanvas"></canvas>
     </div>
     <p id="canvasInfo"></p>
+    <p class="hint drag-hint">문구를 클릭한 채로 끌면 위치를 바로 옮길 수 있어요 · Ctrl/Cmd+Enter로 바로 다운로드</p>
 
     <div class="gallery" aria-label="완성 예시">
       <h3 class="gallery-title">이런 카드를 만들 수 있어요</h3>
@@ -234,6 +249,8 @@
     </div>
   </section>
 </main>
+
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="app.js"></script>
 </body>
