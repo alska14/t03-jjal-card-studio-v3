@@ -71,6 +71,8 @@ const imageHint = $("imageHint");
 const textInput = $("textInput");
 const textCharCount = $("textCharCount");
 const quickPhrases = $("quickPhrases");
+const emojiPicker = $("emojiPicker");
+const sampleSwatches = $("sampleSwatches");
 const posX = $("posX"), posXVal = $("posXVal");
 const posY = $("posY"), posYVal = $("posYVal");
 const fontSize = $("fontSize"), fontSizeVal = $("fontSizeVal");
@@ -372,6 +374,102 @@ quickPhrases.addEventListener("click", (e) => {
   textCharCount.textContent = state.text.length;
   draw();
   textInput.focus();
+});
+
+/* ---------- Emoji quick-insert ---------- */
+const EMOJI_LIST = ["🎉", "✨", "🔥", "❤️", "👍", "😀", "🥳", "⭐", "🎁", "📣", "💯", "🍀", "🌟", "☀️", "🌸", "🎄", "🛍️", "🏷️", "⏰", "✅"];
+function insertAtCursor(el, text) {
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  el.value = el.value.slice(0, start) + text + el.value.slice(end);
+  const caret = start + text.length;
+  el.setSelectionRange(caret, caret);
+}
+function buildEmojiPicker() {
+  emojiPicker.innerHTML = "";
+  for (const em of EMOJI_LIST) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip emoji-chip";
+    btn.textContent = em;
+    btn.setAttribute("aria-label", `이모지 ${em} 삽입`);
+    btn.addEventListener("click", () => {
+      if (textInput.value.length >= 300) {
+        showToast("문구는 최대 300자까지 입력할 수 있습니다.", "error");
+        return;
+      }
+      insertAtCursor(textInput, em);
+      state.text = textInput.value;
+      textCharCount.textContent = state.text.length;
+      draw();
+      textInput.focus();
+    });
+    emojiPicker.appendChild(btn);
+  }
+}
+buildEmojiPicker();
+
+/* ---------- Sample background swatches (no upload needed) ---------- */
+const SAMPLE_SWATCHES = [
+  { name: "선셋", from: "#f97316", to: "#db2777" },
+  { name: "오션", from: "#0891b2", to: "#1e3a8a" },
+  { name: "라벤더", from: "#7c3aed", to: "#ec4899" },
+  { name: "포레스트", from: "#166534", to: "#65a30d" },
+  { name: "피치", from: "#fb7185", to: "#fbbf24" },
+  { name: "미드나잇", from: "#0f172a", to: "#334155" },
+];
+function makeSwatchDataUrl(from, to, w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const cx = c.getContext("2d");
+  const g = cx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, from);
+  g.addColorStop(1, to);
+  cx.fillStyle = g;
+  cx.fillRect(0, 0, w, h);
+  return c.toDataURL("image/png");
+}
+function buildSampleSwatches() {
+  sampleSwatches.innerHTML = "";
+  SAMPLE_SWATCHES.forEach((s) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "swatch-btn";
+    btn.style.background = `linear-gradient(135deg, ${s.from}, ${s.to})`;
+    btn.setAttribute("aria-label", `${s.name} 예시 배경 적용`);
+    btn.title = s.name;
+    btn.addEventListener("click", () => {
+      snapshot();
+      const dataUrl = makeSwatchDataUrl(s.from, s.to, 1200, 1200);
+      const img = new Image();
+      img.onload = () => {
+        state.image = img;
+        state.imageName = `${s.name} (예시 배경)`;
+        state.imageDims = `${img.width}×${img.height}px`;
+        showImagePreview(dataUrl, { name: state.imageName, size: 0 }, img);
+        draw();
+        showToast(`"${s.name}" 예시 배경을 적용했습니다.`, "success");
+      };
+      img.src = dataUrl;
+    });
+    sampleSwatches.appendChild(btn);
+  });
+}
+buildSampleSwatches();
+
+/* ---------- Tabs ---------- */
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabPanels = document.querySelectorAll(".tab-panel");
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    tabButtons.forEach((b) => {
+      b.classList.toggle("active", b === btn);
+      b.setAttribute("aria-selected", b === btn ? "true" : "false");
+    });
+    tabPanels.forEach((panel) => {
+      panel.hidden = panel.id !== `tabpanel-${btn.dataset.tab}`;
+    });
+  });
 });
 posX.addEventListener("input", () => {
   state.posX = Number(posX.value);

@@ -46,160 +46,202 @@
 <main class="layout" id="mainContent">
   <!-- LEFT: Controls -->
   <section class="sidebar controls" aria-label="편집 도구">
-    <div class="group">
-      <h2><span class="step">1</span>이미지 불러오기</h2>
-      <label for="imageInput" class="file-btn">
-        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        파일 선택
-      </label>
-      <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="visually-hidden">
-      <p id="imageError" class="error" role="alert" hidden></p>
-      <p class="hint" id="imageHint">PNG, JPEG 파일만 지원합니다. 이미지 없으면 아래 배경색이 대신 쓰입니다.</p>
-
-      <label for="bgColor">배경색 (이미지 없을 때)</label>
-      <input type="color" id="bgColor" value="#111318">
-
-      <div id="imagePreview" class="image-preview" hidden>
-        <img id="imagePreviewThumb" alt="">
-        <div class="image-preview-meta">
-          <span id="imagePreviewName" class="image-preview-name"></span>
-          <span id="imagePreviewDims" class="image-preview-dims"></span>
-        </div>
-        <button type="button" id="imageRemoveBtn" class="icon-btn-inline" aria-label="이미지 제거">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-
-      <label class="checkbox">
-        <input type="checkbox" id="imageGrayscale">
-        흑백(그레이스케일)
-      </label>
-      <label for="imageBrightness">밝기 <span id="imageBrightnessVal">100</span>%</label>
-      <input type="range" id="imageBrightness" min="50" max="150" value="100">
-      <label for="imageSaturate">채도 <span id="imageSaturateVal">100</span>%</label>
-      <input type="range" id="imageSaturate" min="0" max="200" value="100">
+    <div class="tabs" role="tablist" aria-label="편집 카테고리">
+      <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tabpanel-image" id="tab-image" data-tab="image">
+        <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><circle cx="8.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M21 15l-5-5-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        이미지
+      </button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tabpanel-text" id="tab-text" data-tab="text">
+        <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        문구
+      </button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tabpanel-export" id="tab-export" data-tab="export">
+        <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v12M12 16l-4-4M12 16l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        내보내기
+      </button>
     </div>
 
-    <div class="group">
-      <h2><span class="step">2</span>문구 편집</h2>
-      <label for="textInput">문구 (줄바꿈 가능)</label>
-      <textarea id="textInput" rows="3" placeholder="여기에 문구를 입력하세요" maxlength="300"></textarea>
-      <div class="charcount"><span id="textCharCount">0</span>/300</div>
+    <!-- TAB: 이미지 -->
+    <div class="tab-panel" id="tabpanel-image" role="tabpanel" aria-labelledby="tab-image">
+      <div class="group">
+        <h2>불러오기</h2>
+        <label for="imageInput" class="file-btn">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          파일 선택
+        </label>
+        <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="visually-hidden">
+        <p id="imageError" class="error" role="alert" hidden></p>
+        <p class="hint" id="imageHint">PNG, JPEG 파일만 지원합니다. 이미지 없으면 아래 배경색이 대신 쓰입니다.</p>
 
-      <label>빠른 문구</label>
-      <div class="chip-row" id="quickPhrases" role="group" aria-label="빠른 문구 삽입">
-        <button type="button" class="chip" data-text="축하합니다 🎉">축하합니다 🎉</button>
-        <button type="button" class="chip" data-text="오늘의 추천">오늘의 추천</button>
-        <button type="button" class="chip" data-text="SALE 30% OFF">SALE 30%</button>
-        <button type="button" class="chip" data-text="신메뉴 출시">신메뉴 출시</button>
-        <button type="button" class="chip" data-text="이벤트 참여하기">이벤트 참여</button>
-      </div>
-
-      <div class="field-row">
-        <div class="field-col">
-          <label for="posX">가로 위치 <span id="posXVal"></span>%</label>
-          <input type="range" id="posX" min="0" max="100" value="50">
-        </div>
-        <div class="field-col">
-          <label for="posY">세로 위치 <span id="posYVal"></span>%</label>
-          <input type="range" id="posY" min="0" max="100" value="85">
+        <div id="imagePreview" class="image-preview" hidden>
+          <img id="imagePreviewThumb" alt="">
+          <div class="image-preview-meta">
+            <span id="imagePreviewName" class="image-preview-name"></span>
+            <span id="imagePreviewDims" class="image-preview-dims"></span>
+          </div>
+          <button type="button" id="imageRemoveBtn" class="icon-btn-inline" aria-label="이미지 제거">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
         </div>
       </div>
 
-      <label for="fontSize">글자 크기 <span id="fontSizeVal"></span>%</label>
-      <input type="range" id="fontSize" min="2" max="20" value="7">
+      <div class="group">
+        <h2>예시 이미지로 바로 시작</h2>
+        <p class="hint">업로드 없이 클릭 한 번으로 배경을 채워보세요.</p>
+        <div class="swatch-grid" id="sampleSwatches" role="group" aria-label="예시 배경 이미지 선택"></div>
+      </div>
 
-      <label for="fontFamily">글꼴</label>
-      <select id="fontFamily">
-        <option value="system" selected>기본 (시스템)</option>
-        <option value="'Outfit', sans-serif">Outfit (모던 고딕)</option>
-        <option value="'Work Sans', sans-serif">Work Sans (본문형)</option>
-        <option value="Georgia, serif">Georgia (세리프)</option>
-        <option value="'Courier New', monospace">Courier New (타자기)</option>
-      </select>
+      <div class="group">
+        <h2>배경 · 보정</h2>
+        <label for="bgColor">배경색 (이미지 없을 때)</label>
+        <input type="color" id="bgColor" value="#111318">
 
-      <div class="field-row">
-        <div class="field-col">
-          <label for="textColor">글자 색 <span id="textColorHex" class="mono-tag"></span></label>
-          <input type="color" id="textColor" value="#ffffff">
-        </div>
-        <div class="field-col">
-          <label for="textAlign">정렬</label>
-          <select id="textAlign">
-            <option value="center" selected>가운데</option>
-            <option value="left">왼쪽</option>
-            <option value="right">오른쪽</option>
-          </select>
+        <label class="checkbox">
+          <input type="checkbox" id="imageGrayscale">
+          흑백(그레이스케일)
+        </label>
+        <label for="imageBrightness">밝기 <span id="imageBrightnessVal">100</span>%</label>
+        <input type="range" id="imageBrightness" min="50" max="150" value="100">
+        <label for="imageSaturate">채도 <span id="imageSaturateVal">100</span>%</label>
+        <input type="range" id="imageSaturate" min="0" max="200" value="100">
+      </div>
+    </div>
+
+    <!-- TAB: 문구 -->
+    <div class="tab-panel" id="tabpanel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+      <div class="group">
+        <h2>문구</h2>
+        <label for="textInput">문구 (줄바꿈 가능)</label>
+        <textarea id="textInput" rows="3" placeholder="여기에 문구를 입력하세요" maxlength="300"></textarea>
+        <div class="charcount"><span id="textCharCount">0</span>/300</div>
+
+        <label>이모지 바로 넣기</label>
+        <div class="chip-row emoji-row" id="emojiPicker" role="group" aria-label="이모지 삽입"></div>
+
+        <label>빠른 문구</label>
+        <div class="chip-row" id="quickPhrases" role="group" aria-label="빠른 문구 삽입">
+          <button type="button" class="chip" data-text="축하합니다 🎉">축하합니다 🎉</button>
+          <button type="button" class="chip" data-text="오늘의 추천">오늘의 추천</button>
+          <button type="button" class="chip" data-text="SALE 30% OFF">SALE 30%</button>
+          <button type="button" class="chip" data-text="신메뉴 출시">신메뉴 출시</button>
+          <button type="button" class="chip" data-text="이벤트 참여하기">이벤트 참여</button>
         </div>
       </div>
 
-      <label for="textOpacity">문구 불투명도 <span id="textOpacityVal"></span>%</label>
-      <input type="range" id="textOpacity" min="10" max="100" value="100">
-
-      <label class="checkbox">
-        <input type="checkbox" id="textStroke" checked>
-        외곽선(가독성) 사용
-      </label>
-
-      <label class="checkbox">
-        <input type="checkbox" id="textGlow">
-        부드러운 그림자(글로우) 사용
-      </label>
-
-      <label class="checkbox">
-        <input type="checkbox" id="overlayEnabled">
-        그라데이션 오버레이 사용
-      </label>
-      <div id="overlayOptions" class="sub-options" hidden>
+      <div class="group">
+        <h2>위치 · 크기</h2>
         <div class="field-row">
           <div class="field-col">
-            <label for="overlayDirection">방향</label>
-            <select id="overlayDirection">
-              <option value="bottom" selected>하단</option>
-              <option value="top">상단</option>
-              <option value="full">전체</option>
-            </select>
+            <label for="posX">가로 위치 <span id="posXVal"></span>%</label>
+            <input type="range" id="posX" min="0" max="100" value="50">
           </div>
           <div class="field-col">
-            <label for="overlayOpacity">진하기 <span id="overlayOpacityVal"></span>%</label>
-            <input type="range" id="overlayOpacity" min="10" max="90" value="55">
+            <label for="posY">세로 위치 <span id="posYVal"></span>%</label>
+            <input type="range" id="posY" min="0" max="100" value="85">
           </div>
         </div>
-        <p class="hint">문구 뒤에 어두운 그라데이션을 깔아 가독성을 높입니다.</p>
+
+        <label for="fontSize">글자 크기 <span id="fontSizeVal"></span>%</label>
+        <input type="range" id="fontSize" min="2" max="20" value="7">
+
+        <label for="fontFamily">글꼴</label>
+        <select id="fontFamily">
+          <option value="system" selected>기본 (시스템)</option>
+          <option value="'Outfit', sans-serif">Outfit (모던 고딕)</option>
+          <option value="'Work Sans', sans-serif">Work Sans (본문형)</option>
+          <option value="Georgia, serif">Georgia (세리프)</option>
+          <option value="'Courier New', monospace">Courier New (타자기)</option>
+        </select>
+
+        <div class="field-row">
+          <div class="field-col">
+            <label for="textColor">글자 색 <span id="textColorHex" class="mono-tag"></span></label>
+            <input type="color" id="textColor" value="#ffffff">
+          </div>
+          <div class="field-col">
+            <label for="textAlign">정렬</label>
+            <select id="textAlign">
+              <option value="center" selected>가운데</option>
+              <option value="left">왼쪽</option>
+              <option value="right">오른쪽</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="textOpacity">문구 불투명도 <span id="textOpacityVal"></span>%</label>
+        <input type="range" id="textOpacity" min="10" max="100" value="100">
+      </div>
+
+      <div class="group">
+        <h2>효과</h2>
+        <label class="checkbox">
+          <input type="checkbox" id="textStroke" checked>
+          외곽선(가독성) 사용
+        </label>
+
+        <label class="checkbox">
+          <input type="checkbox" id="textGlow">
+          부드러운 그림자(글로우) 사용
+        </label>
+
+        <label class="checkbox">
+          <input type="checkbox" id="overlayEnabled">
+          그라데이션 오버레이 사용
+        </label>
+        <div id="overlayOptions" class="sub-options" hidden>
+          <div class="field-row">
+            <div class="field-col">
+              <label for="overlayDirection">방향</label>
+              <select id="overlayDirection">
+                <option value="bottom" selected>하단</option>
+                <option value="top">상단</option>
+                <option value="full">전체</option>
+              </select>
+            </div>
+            <div class="field-col">
+              <label for="overlayOpacity">진하기 <span id="overlayOpacityVal"></span>%</label>
+              <input type="range" id="overlayOpacity" min="10" max="90" value="55">
+            </div>
+          </div>
+          <p class="hint">문구 뒤에 어두운 그라데이션을 깔아 가독성을 높입니다.</p>
+        </div>
       </div>
     </div>
 
-    <div class="group">
-      <h2><span class="step">3</span>내보내기</h2>
-      <label for="exportFormat">파일 형식</label>
-      <select id="exportFormat">
-        <option value="image/png" selected>PNG</option>
-        <option value="image/jpeg">JPEG</option>
-      </select>
-      <label class="checkbox">
-        <input type="checkbox" id="ownWork" checked>
-        본인 제작 이미지입니다
-      </label>
-      <div id="sourceBlock">
-        <label for="sourceUrl">원본 출처 URL (본인 제작이 아닌 경우)</label>
-        <input type="text" id="sourceUrl" placeholder="https://...">
-        <label for="licenseNote">사용 허가 근거</label>
-        <select id="licenseNote">
-          <option value="">선택하세요</option>
-          <option value="라이선스명">라이선스명 표기됨</option>
-          <option value="이용약관">이용약관상 허용됨</option>
-          <option value="수업제공">수업에서 제공된 자료</option>
+    <!-- TAB: 내보내기 -->
+    <div class="tab-panel" id="tabpanel-export" role="tabpanel" aria-labelledby="tab-export" hidden>
+      <div class="group">
+        <h2>파일 설정</h2>
+        <label for="exportFormat">파일 형식</label>
+        <select id="exportFormat">
+          <option value="image/png" selected>PNG</option>
+          <option value="image/jpeg">JPEG</option>
         </select>
+        <label class="checkbox">
+          <input type="checkbox" id="ownWork" checked>
+          본인 제작 이미지입니다
+        </label>
+        <div id="sourceBlock">
+          <label for="sourceUrl">원본 출처 URL (본인 제작이 아닌 경우)</label>
+          <input type="text" id="sourceUrl" placeholder="https://...">
+          <label for="licenseNote">사용 허가 근거</label>
+          <select id="licenseNote">
+            <option value="">선택하세요</option>
+            <option value="라이선스명">라이선스명 표기됨</option>
+            <option value="이용약관">이용약관상 허용됨</option>
+            <option value="수업제공">수업에서 제공된 자료</option>
+          </select>
+        </div>
+        <button type="button" id="downloadBtn" class="primary">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v12M12 16l-4-4M12 16l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          이미지 다운로드
+        </button>
+        <button type="button" id="downloadAllBtn">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="12" y="6" width="7" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+          3개 비율 모두 다운로드
+        </button>
+        <p class="hint">위치 정보(GPS) 등 메타데이터는 자동으로 제거됩니다.</p>
       </div>
-      <button type="button" id="downloadBtn" class="primary">
-        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v12M12 16l-4-4M12 16l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        이미지 다운로드
-      </button>
-      <button type="button" id="downloadAllBtn">
-        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="12" y="6" width="7" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>
-        3개 비율 모두 다운로드
-      </button>
-      <p class="hint">위치 정보(GPS) 등 메타데이터는 자동으로 제거됩니다.</p>
     </div>
   </section>
 
