@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="이미지와 문구를 조합해 밈·카드·SNS 게시용 이미지를 만들고 파일로 내려받는 무료 웹 도구입니다.">
+<meta name="theme-color" content="#DB2777">
+<meta property="og:title" content="짤·카드 스튜디오">
+<meta property="og:description" content="이미지와 문구를 조합해 밈·카드·SNS 게시용 이미지를 만들고 파일로 내려받으세요.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="exports/card1_1x1.png">
 <title>짤·카드 스튜디오</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23DB2777'/%3E%3Cstop offset='1' stop-color='%230891B2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='1' y='1' width='22' height='22' rx='6' fill='url(%23g)'/%3E%3Cpath d='M6.5 15.5L10 11l3 3.2L17.5 9' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='7' cy='7.5' r='1.6' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -248,7 +255,7 @@
   <!-- CENTER: Preview -->
   <section class="stage" aria-label="미리보기">
     <div class="canvas-wrap">
-      <canvas id="previewCanvas"></canvas>
+      <canvas id="previewCanvas" tabindex="0" role="application" aria-label="미리보기 캔버스. 화살표 키로 문구 위치를 옮길 수 있습니다."></canvas>
     </div>
     <p id="canvasInfo"></p>
     <p class="hint drag-hint">문구를 클릭한 채로 끌면 위치를 바로 옮길 수 있어요 · Ctrl/Cmd+Enter로 바로 다운로드</p>

@@ -634,6 +634,21 @@ document.addEventListener("keydown", (e) => {
 });
 undoBtn.addEventListener("click", undo);
 
+/* ---------- Keyboard-only position nudge (canvas focused) ---------- */
+canvas.addEventListener("keydown", (e) => {
+  const ARROW_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+  if (!ARROW_KEYS.includes(e.key) || !state.text) return;
+  e.preventDefault();
+  const step = e.shiftKey ? 5 : 1;
+  if (e.key === "ArrowLeft") state.posX = Math.max(0, state.posX - step);
+  if (e.key === "ArrowRight") state.posX = Math.min(100, state.posX + step);
+  if (e.key === "ArrowUp") state.posY = Math.max(0, state.posY - step);
+  if (e.key === "ArrowDown") state.posY = Math.min(100, state.posY + step);
+  posX.value = state.posX; posXVal.textContent = state.posX;
+  posY.value = state.posY; posYVal.textContent = state.posY;
+  draw();
+});
+
 ratioButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     ratioButtons.forEach((b) => b.classList.remove("active"));
