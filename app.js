@@ -335,11 +335,15 @@ function renderTemplateList() {
     actions.className = "t-actions";
 
     const loadBtn = document.createElement("button");
-    loadBtn.textContent = "불러오기";
+    loadBtn.className = "icon-btn";
+    loadBtn.innerHTML = '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 3v4h-4M6 21v-4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>불러오기</span>';
+    loadBtn.setAttribute("aria-label", `${t.name} 템플릿 불러오기`);
     loadBtn.addEventListener("click", () => applyTemplate(t));
 
     const editBtn = document.createElement("button");
-    editBtn.textContent = "수정 모드";
+    editBtn.className = "icon-btn";
+    editBtn.innerHTML = '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20l4.5-1 10-10a1.5 1.5 0 000-2.1l-1.4-1.4a1.5 1.5 0 00-2.1 0l-10 10L4 20z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>수정</span>';
+    editBtn.setAttribute("aria-label", `${t.name} 템플릿 수정 모드`);
     editBtn.addEventListener("click", () => {
       applyTemplate(t);
       editingTemplateId = t.id;
@@ -347,7 +351,9 @@ function renderTemplateList() {
     });
 
     const delBtn = document.createElement("button");
-    delBtn.textContent = "삭제";
+    delBtn.className = "icon-btn danger";
+    delBtn.innerHTML = '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0l1 13a1 1 0 001 1h6a1 1 0 001-1l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>삭제</span>';
+    delBtn.setAttribute("aria-label", `${t.name} 템플릿 삭제`);
     delBtn.addEventListener("click", () => {
       if (!confirm(`템플릿 "${t.name}"을(를) 삭제할까요?`)) return;
       const list = loadTemplates().filter((x) => x.id !== t.id);
