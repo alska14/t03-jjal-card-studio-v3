@@ -13,13 +13,19 @@ const SUPPORTED_TYPES = ["image/png", "image/jpeg"];
 let state = {
   image: null,        // HTMLImageElement
   imageName: "",
+  imageDims: "",
   text: "",
   posX: 50,
   posY: 85,
   fontSize: 7,
+  fontFamily: "system",
   color: "#ffffff",
   align: "center",
   stroke: true,
+  opacity: 100,
+  overlayEnabled: false,
+  overlayDirection: "bottom",
+  overlayOpacity: 55,
   ratio: "1:1",
 };
 
@@ -32,13 +38,29 @@ const ctx = canvas.getContext("2d");
 
 const imageInput = $("imageInput");
 const imageError = $("imageError");
+const imagePreview = $("imagePreview");
+const imagePreviewThumb = $("imagePreviewThumb");
+const imagePreviewName = $("imagePreviewName");
+const imagePreviewDims = $("imagePreviewDims");
+const imageRemoveBtn = $("imageRemoveBtn");
+const imageHint = $("imageHint");
+
 const textInput = $("textInput");
+const textCharCount = $("textCharCount");
+const quickPhrases = $("quickPhrases");
 const posX = $("posX"), posXVal = $("posXVal");
 const posY = $("posY"), posYVal = $("posYVal");
 const fontSize = $("fontSize"), fontSizeVal = $("fontSizeVal");
+const fontFamily = $("fontFamily");
 const textColor = $("textColor");
+const textColorHex = $("textColorHex");
 const textAlign = $("textAlign");
+const textOpacity = $("textOpacity"), textOpacityVal = $("textOpacityVal");
 const textStroke = $("textStroke");
+const overlayEnabled = $("overlayEnabled");
+const overlayOptions = $("overlayOptions");
+const overlayDirection = $("overlayDirection");
+const overlayOpacity = $("overlayOpacity"), overlayOpacityVal = $("overlayOpacityVal");
 const ratioButtons = document.querySelectorAll(".ratio-btn");
 const canvasInfo = $("canvasInfo");
 
@@ -73,11 +95,36 @@ function draw() {
     drawCoverImage(state.image, w, h);
   }
 
+  if (state.overlayEnabled) {
+    drawOverlay(w, h);
+  }
+
   if (state.text && state.text.trim().length > 0) {
     drawText(w, h);
   }
 
   canvasInfo.textContent = `${w}×${h}px (${state.ratio})`;
+}
+
+function drawOverlay(w, h) {
+  const alpha = state.overlayOpacity / 100;
+  let grad;
+  if (state.overlayDirection === "top") {
+    grad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+    grad.addColorStop(0, `rgba(0,0,0,${alpha})`);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+  } else if (state.overlayDirection === "full") {
+    grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, `rgba(0,0,0,${alpha * 0.5})`);
+    grad.addColorStop(0.5, `rgba(0,0,0,${alpha * 0.25})`);
+    grad.addColorStop(1, `rgba(0,0,0,${alpha * 0.5})`);
+  } else {
+    grad = ctx.createLinearGradient(0, h * 0.45, 0, h);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, `rgba(0,0,0,${alpha})`);
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
 }
 
 function drawCoverImage(img, w, h) {
@@ -148,12 +195,16 @@ function wrapLines(text, maxWidth) {
 
 function drawText(w, h) {
   const fsPx = Math.max(8, (state.fontSize / 100) * w);
-  ctx.font = `bold ${fsPx}px -apple-system, "Malgun Gothic", sans-serif`;
+  const family = state.fontFamily === "system"
+    ? '-apple-system, "Malgun Gothic", sans-serif'
+    : state.fontFamily;
+  ctx.font = `bold ${fsPx}px ${family}`;
   ctx.textAlign = state.align;
   ctx.textBaseline = "middle";
   ctx.fillStyle = state.color;
   ctx.strokeStyle = "rgba(0,0,0,0.85)";
   ctx.lineWidth = Math.max(2, fsPx * 0.12);
+  ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity / 100));
 
   const maxWidth = w * 0.9;
   const lines = wrapLines(state.text, maxWidth);
@@ -168,6 +219,7 @@ function drawText(w, h) {
     ctx.fillText(line, cx, cy);
     cy += lineHeight;
   }
+  ctx.globalAlpha = 1;
 }
 
 /* ---------- Image load ---------- */
@@ -189,6 +241,8 @@ imageInput.addEventListener("change", (e) => {
     img.onload = () => {
       state.image = img;
       state.imageName = file.name;
+      state.imageDims = `${img.width}×${img.height}px`;
+      showImagePreview(ev.target.result, file, img);
       draw();
     };
     img.onerror = () => {
@@ -204,10 +258,46 @@ imageInput.addEventListener("change", (e) => {
   reader.readAsDataURL(file);
 });
 
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function showImagePreview(dataUrl, file, img) {
+  imagePreviewThumb.src = dataUrl;
+  imagePreviewThumb.alt = file.name;
+  imagePreviewName.textContent = file.name;
+  imagePreviewDims.textContent = `${img.width}×${img.height}px · ${formatFileSize(file.size)}`;
+  imagePreview.hidden = false;
+  imageHint.hidden = true;
+}
+
+imageRemoveBtn.addEventListener("click", () => {
+  state.image = null;
+  state.imageName = "";
+  state.imageDims = "";
+  imageInput.value = "";
+  imagePreview.hidden = true;
+  imageHint.hidden = false;
+  imageError.hidden = true;
+  draw();
+});
+
 /* ---------- Text / style controls ---------- */
 textInput.addEventListener("input", () => {
   state.text = textInput.value;
+  textCharCount.textContent = state.text.length;
   draw();
+});
+quickPhrases.addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  textInput.value = chip.dataset.text;
+  state.text = chip.dataset.text;
+  textCharCount.textContent = state.text.length;
+  draw();
+  textInput.focus();
 });
 posX.addEventListener("input", () => {
   state.posX = Number(posX.value);
@@ -224,16 +314,40 @@ fontSize.addEventListener("input", () => {
   fontSizeVal.textContent = state.fontSize;
   draw();
 });
+fontFamily.addEventListener("change", () => {
+  state.fontFamily = fontFamily.value;
+  draw();
+});
 textColor.addEventListener("input", () => {
   state.color = textColor.value;
+  textColorHex.textContent = state.color.toUpperCase();
   draw();
 });
 textAlign.addEventListener("change", () => {
   state.align = textAlign.value;
   draw();
 });
+textOpacity.addEventListener("input", () => {
+  state.opacity = Number(textOpacity.value);
+  textOpacityVal.textContent = state.opacity;
+  draw();
+});
 textStroke.addEventListener("change", () => {
   state.stroke = textStroke.checked;
+  draw();
+});
+overlayEnabled.addEventListener("change", () => {
+  state.overlayEnabled = overlayEnabled.checked;
+  overlayOptions.hidden = !state.overlayEnabled;
+  draw();
+});
+overlayDirection.addEventListener("change", () => {
+  state.overlayDirection = overlayDirection.value;
+  draw();
+});
+overlayOpacity.addEventListener("input", () => {
+  state.overlayOpacity = Number(overlayOpacity.value);
+  overlayOpacityVal.textContent = state.overlayOpacity;
   draw();
 });
 
@@ -261,7 +375,9 @@ downloadBtn.addEventListener("click", () => {
   }
   const format = exportFormat.value;
   const ext = format === "image/png" ? "png" : "jpg";
+  downloadBtn.disabled = true;
   canvas.toBlob((blob) => {
+    downloadBtn.disabled = false;
     if (!blob) {
       alert("이미지 생성에 실패했습니다.");
       return;
@@ -302,9 +418,14 @@ function currentStateAsTemplate(name, id) {
     posX: state.posX,
     posY: state.posY,
     fontSize: state.fontSize,
+    fontFamily: state.fontFamily,
     color: state.color,
     align: state.align,
     stroke: state.stroke,
+    opacity: state.opacity,
+    overlayEnabled: state.overlayEnabled,
+    overlayDirection: state.overlayDirection,
+    overlayOpacity: state.overlayOpacity,
     ratio: state.ratio,
   };
 }
@@ -373,18 +494,31 @@ function applyTemplate(t) {
   state.posX = t.posX;
   state.posY = t.posY;
   state.fontSize = t.fontSize;
+  state.fontFamily = t.fontFamily || "system";
   state.color = t.color;
   state.align = t.align;
   state.stroke = t.stroke !== undefined ? t.stroke : true;
+  state.opacity = t.opacity !== undefined ? t.opacity : 100;
+  state.overlayEnabled = t.overlayEnabled !== undefined ? t.overlayEnabled : false;
+  state.overlayDirection = t.overlayDirection || "bottom";
+  state.overlayOpacity = t.overlayOpacity !== undefined ? t.overlayOpacity : 55;
   state.ratio = RATIOS[t.ratio] ? t.ratio : "1:1";
 
   textInput.value = state.text;
+  textCharCount.textContent = state.text.length;
   posX.value = state.posX; posXVal.textContent = state.posX;
   posY.value = state.posY; posYVal.textContent = state.posY;
   fontSize.value = state.fontSize; fontSizeVal.textContent = state.fontSize;
+  fontFamily.value = state.fontFamily;
   textColor.value = state.color;
+  textColorHex.textContent = state.color.toUpperCase();
   textAlign.value = state.align;
   textStroke.checked = state.stroke;
+  textOpacity.value = state.opacity; textOpacityVal.textContent = state.opacity;
+  overlayEnabled.checked = state.overlayEnabled;
+  overlayOptions.hidden = !state.overlayEnabled;
+  overlayDirection.value = state.overlayDirection;
+  overlayOpacity.value = state.overlayOpacity; overlayOpacityVal.textContent = state.overlayOpacity;
   ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === state.ratio));
 
   draw();
@@ -476,6 +610,10 @@ function init() {
   posXVal.textContent = posX.value;
   posYVal.textContent = posY.value;
   fontSizeVal.textContent = fontSize.value;
+  textColorHex.textContent = textColor.value.toUpperCase();
+  textOpacityVal.textContent = textOpacity.value;
+  overlayOpacityVal.textContent = overlayOpacity.value;
+  textCharCount.textContent = textInput.value.length;
   renderTemplateList();
   draw();
 }
