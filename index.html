@@ -58,13 +58,9 @@
   <!-- LEFT: Controls -->
   <section class="sidebar controls" aria-label="편집 도구">
     <div class="tabs" role="tablist" aria-label="편집 카테고리">
-      <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tabpanel-image" id="tab-image" data-tab="image">
+      <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tabpanel-edit" id="tab-edit" data-tab="edit">
         <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><circle cx="8.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M21 15l-5-5-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        이미지
-      </button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tabpanel-text" id="tab-text" data-tab="text">
-        <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        문구
+        이미지·문구 편집
       </button>
       <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tabpanel-export" id="tab-export" data-tab="export">
         <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v12M12 16l-4-4M12 16l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -72,8 +68,8 @@
       </button>
     </div>
 
-    <!-- TAB: 이미지 -->
-    <div class="tab-panel" id="tabpanel-image" role="tabpanel" aria-labelledby="tab-image">
+    <!-- TAB: 편집 (이미지 도구 + 문구 도구, 항상 함께 표시) -->
+    <div class="tab-panel" id="tabpanel-edit" role="tabpanel" aria-labelledby="tab-edit">
       <div class="group">
         <h2>불러오기</h2>
         <label for="imageInput" class="file-btn">
@@ -116,10 +112,9 @@
         <label for="imageSaturate">채도 <span id="imageSaturateVal">100</span>%</label>
         <input type="range" id="imageSaturate" min="0" max="200" value="100">
       </div>
-    </div>
 
-    <!-- TAB: 문구 -->
-    <div class="tab-panel" id="tabpanel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+      <div class="section-divider">문구</div>
+
       <div class="group">
         <h2>레이어 <span class="hint-inline">(문구를 여러 개 따로 배치)</span></h2>
         <div class="layer-list" id="layerList" role="listbox" aria-label="문구 레이어 목록"></div>

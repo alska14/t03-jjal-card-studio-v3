@@ -328,6 +328,18 @@ select:focus-visible, textarea:focus-visible, label:focus-within,
 }
 .emoji-row .emoji-chip:hover { background: var(--accent-wash); transform: translateY(-1px); }
 
+.section-divider {
+  margin: 4px 0 18px;
+  padding-top: 18px;
+  border-top: 2px solid var(--accent-wash);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 .group { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
 .group:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
 
