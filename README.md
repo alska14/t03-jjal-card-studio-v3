@@ -4,10 +4,10 @@
 로그인, 회원가입, 인증, 초대, 비밀번호, OAuth, CAPTCHA 없이 새 시크릿 창에서 바로 열립니다.
 
 ## 결과물 주소
-- https://alska14.github.io/t03-jjal-card-studio-v2/
+- https://alska14.github.io/t03-jjal-card-studio-v3/
 
 ## 소스 주소
-- https://github.com/alska14/t03-jjal-card-studio-v2/tree/86c770ccf228b1d4a05d1f8df1ac233f1874bc98
+- https://github.com/alska14/t03-jjal-card-studio-v3/tree/baa885227e5422f35da8ab257768ecaa474414a6
   (브랜치가 아닌, 전체 40자리 commit SHA로 고정된 URL입니다)
 
 ## 짧은 확인 방법 (4줄)
