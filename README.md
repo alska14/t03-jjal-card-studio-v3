@@ -7,7 +7,7 @@
 - https://alska14.github.io/t03-jjal-card-studio-v3/
 
 ## 소스 주소
-- https://github.com/alska14/t03-jjal-card-studio-v3/tree/f58ca6655810e85f470e5ca1fa3cf6beccc28d23
+- https://github.com/alska14/t03-jjal-card-studio-v3/tree/5cb9b99444ca1ec744181774926442d6528cff39
   (브랜치가 아닌, 전체 40자리 commit SHA로 고정된 URL입니다)
 
 ## 짧은 확인 방법 (4줄)
