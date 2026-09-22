@@ -32,6 +32,10 @@
       <button type="button" class="ratio-btn" data-ratio="4:5">4:5</button>
       <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
     </div>
+    <button type="button" id="undoBtn" class="ghost-btn" aria-label="되돌리기 (Ctrl+Z)" title="되돌리기 (Ctrl+Z)">
+      <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 7L4 12l5 5M4 12h10a6 6 0 000-12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      되돌리기
+    </button>
     <button type="button" id="resetBtn" class="ghost-btn" aria-label="편집 내용 초기화">
       <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       초기화
@@ -65,6 +69,15 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
+
+      <label class="checkbox">
+        <input type="checkbox" id="imageGrayscale">
+        흑백(그레이스케일)
+      </label>
+      <label for="imageBrightness">밝기 <span id="imageBrightnessVal">100</span>%</label>
+      <input type="range" id="imageBrightness" min="50" max="150" value="100">
+      <label for="imageSaturate">채도 <span id="imageSaturateVal">100</span>%</label>
+      <input type="range" id="imageSaturate" min="0" max="200" value="100">
     </div>
 
     <div class="group">
@@ -181,6 +194,10 @@
       <button type="button" id="downloadBtn" class="primary">
         <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v12M12 16l-4-4M12 16l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         이미지 다운로드
+      </button>
+      <button type="button" id="downloadAllBtn">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="12" y="6" width="7" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+        3개 비율 모두 다운로드
       </button>
       <p class="hint">위치 정보(GPS) 등 메타데이터는 자동으로 제거됩니다.</p>
     </div>

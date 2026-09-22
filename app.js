@@ -28,10 +28,29 @@ let state = {
   overlayDirection: "bottom",
   overlayOpacity: 55,
   bgColor: "#111318",
+  grayscale: false,
+  brightness: 100,
+  saturate: 100,
   ratio: "1:1",
 };
 
 const DEFAULT_STATE = JSON.parse(JSON.stringify(state));
+
+/* ---------- Undo history ---------- */
+const undoStack = [];
+function snapshot() {
+  const { image, ...rest } = state; // image (HTMLImageElement) not clonable/needed for undo of style fields
+  undoStack.push(JSON.parse(JSON.stringify(rest)));
+  if (undoStack.length > 20) undoStack.shift();
+}
+function undo() {
+  const prev = undoStack.pop();
+  if (!prev) { showToast("되돌릴 내용이 없습니다.", "info"); return; }
+  Object.assign(state, prev);
+  syncControlsFromState();
+  draw();
+  showToast("되돌렸습니다.", "info");
+}
 
 let editingTemplateId = null; // if set, "save" updates this template instead of creating new
 
@@ -67,7 +86,11 @@ const overlayDirection = $("overlayDirection");
 const overlayOpacity = $("overlayOpacity"), overlayOpacityVal = $("overlayOpacityVal");
 const textGlow = $("textGlow");
 const bgColor = $("bgColor");
+const imageGrayscale = $("imageGrayscale");
+const imageBrightness = $("imageBrightness"), imageBrightnessVal = $("imageBrightnessVal");
+const imageSaturate = $("imageSaturate"), imageSaturateVal = $("imageSaturateVal");
 const resetBtn = $("resetBtn");
+const undoBtn = $("undoBtn");
 const ratioButtons = document.querySelectorAll(".ratio-btn");
 const canvasInfo = $("canvasInfo");
 const toastContainer = $("toastContainer");
@@ -78,6 +101,7 @@ const sourceUrl = $("sourceUrl");
 const licenseNote = $("licenseNote");
 const exportFormat = $("exportFormat");
 const downloadBtn = $("downloadBtn");
+const downloadAllBtn = $("downloadAllBtn");
 
 const templateName = $("templateName");
 const saveTemplateBtn = $("saveTemplateBtn");
@@ -88,7 +112,7 @@ const jsonError = $("jsonError");
 const jsonSuccess = $("jsonSuccess");
 
 /* ---------- Rendering ---------- */
-function draw() {
+function draw(opts) {
   const { w, h } = RATIOS[state.ratio];
   canvas.width = w;
   canvas.height = h;
@@ -111,7 +135,31 @@ function draw() {
     drawText(w, h);
   }
 
+  if (opts && opts.guides) {
+    drawSnapGuides(w, h, opts.guides);
+  }
+
   canvasInfo.textContent = `${w}×${h}px (${state.ratio})`;
+}
+
+function drawSnapGuides(w, h, axes) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(219, 39, 119, 0.85)";
+  ctx.lineWidth = Math.max(2, w * 0.0018);
+  ctx.setLineDash([w * 0.012, w * 0.012]);
+  if (axes.x) {
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 0);
+    ctx.lineTo(w / 2, h);
+    ctx.stroke();
+  }
+  if (axes.y) {
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawOverlay(w, h) {
@@ -150,7 +198,13 @@ function drawCoverImage(img, w, h) {
     sx = 0;
     sy = (img.height - sh) / 2;
   }
+  const filters = [];
+  if (state.grayscale) filters.push("grayscale(1)");
+  if (state.brightness !== 100) filters.push(`brightness(${state.brightness}%)`);
+  if (state.saturate !== 100) filters.push(`saturate(${state.saturate}%)`);
+  ctx.filter = filters.length ? filters.join(" ") : "none";
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  ctx.filter = "none";
 }
 
 function breakLongWord(word, maxWidth) {
@@ -378,6 +432,20 @@ bgColor.addEventListener("input", () => {
   state.bgColor = bgColor.value;
   draw();
 });
+imageGrayscale.addEventListener("change", () => {
+  state.grayscale = imageGrayscale.checked;
+  draw();
+});
+imageBrightness.addEventListener("input", () => {
+  state.brightness = Number(imageBrightness.value);
+  imageBrightnessVal.textContent = state.brightness;
+  draw();
+});
+imageSaturate.addEventListener("input", () => {
+  state.saturate = Number(imageSaturate.value);
+  imageSaturateVal.textContent = state.saturate;
+  draw();
+});
 
 /* ---------- Toast notifications ---------- */
 function showToast(message, type) {
@@ -396,33 +464,19 @@ function showToast(message, type) {
 /* ---------- Reset ---------- */
 resetBtn.addEventListener("click", () => {
   if (!confirm("모든 편집 내용을 초기화할까요? 저장된 템플릿은 유지됩니다.")) return;
-  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  snapshot();
+  state = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), image: null };
   imageInput.value = "";
   imagePreview.hidden = true;
   imageHint.hidden = false;
   imageError.hidden = true;
-  textInput.value = "";
-  textCharCount.textContent = "0";
-  posX.value = state.posX; posXVal.textContent = state.posX;
-  posY.value = state.posY; posYVal.textContent = state.posY;
-  fontSize.value = state.fontSize; fontSizeVal.textContent = state.fontSize;
-  fontFamily.value = state.fontFamily;
-  textColor.value = state.color; textColorHex.textContent = state.color.toUpperCase();
-  textAlign.value = state.align;
-  textStroke.checked = state.stroke;
-  textGlow.checked = state.glow;
-  textOpacity.value = state.opacity; textOpacityVal.textContent = state.opacity;
-  overlayEnabled.checked = state.overlayEnabled;
-  overlayOptions.hidden = true;
-  overlayDirection.value = state.overlayDirection;
-  overlayOpacity.value = state.overlayOpacity; overlayOpacityVal.textContent = state.overlayOpacity;
-  bgColor.value = state.bgColor;
-  ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === state.ratio));
+  syncControlsFromState();
   draw();
   showToast("초기화했습니다.", "info");
 });
 
-/* ---------- Drag text directly on canvas ---------- */
+/* ---------- Drag text directly on canvas (with center snap) ---------- */
+const SNAP_THRESHOLD = 3; // percent
 let dragging = false;
 function canvasPointToPercent(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
@@ -433,26 +487,27 @@ function canvasPointToPercent(clientX, clientY) {
     y: Math.max(0, Math.min(100, py)),
   };
 }
+function applyDragPoint(clientX, clientY) {
+  const p = canvasPointToPercent(clientX, clientY);
+  const snapX = Math.abs(p.x - 50) < SNAP_THRESHOLD;
+  const snapY = Math.abs(p.y - 50) < SNAP_THRESHOLD;
+  state.posX = Math.round(snapX ? 50 : p.x);
+  state.posY = Math.round(snapY ? 50 : p.y);
+  posX.value = state.posX; posXVal.textContent = state.posX;
+  posY.value = state.posY; posYVal.textContent = state.posY;
+  draw({ guides: { x: snapX, y: snapY } });
+}
 canvas.addEventListener("pointerdown", (e) => {
   if (!state.text) return;
+  snapshot();
   dragging = true;
   canvas.setPointerCapture(e.pointerId);
   canvas.classList.add("dragging");
-  const p = canvasPointToPercent(e.clientX, e.clientY);
-  state.posX = Math.round(p.x);
-  state.posY = Math.round(p.y);
-  posX.value = state.posX; posXVal.textContent = state.posX;
-  posY.value = state.posY; posYVal.textContent = state.posY;
-  draw();
+  applyDragPoint(e.clientX, e.clientY);
 });
 canvas.addEventListener("pointermove", (e) => {
   if (!dragging) return;
-  const p = canvasPointToPercent(e.clientX, e.clientY);
-  state.posX = Math.round(p.x);
-  state.posY = Math.round(p.y);
-  posX.value = state.posX; posXVal.textContent = state.posX;
-  posY.value = state.posY; posYVal.textContent = state.posY;
-  draw();
+  applyDragPoint(e.clientX, e.clientY);
 });
 function endDrag(e) {
   if (!dragging) return;
@@ -461,17 +516,25 @@ function endDrag(e) {
   if (e && e.pointerId !== undefined) {
     try { canvas.releasePointerCapture(e.pointerId); } catch { /* already released */ }
   }
+  draw(); // redraw once without snap guide lines so the export never contains them
 }
 canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
 
-/* ---------- Keyboard shortcut ---------- */
+/* ---------- Keyboard shortcuts ---------- */
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
     e.preventDefault();
     downloadBtn.click();
   }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return; // don't hijack native text-field undo
+    e.preventDefault();
+    undo();
+  }
 });
+undoBtn.addEventListener("click", undo);
 
 ratioButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -488,33 +551,62 @@ ownWork.addEventListener("change", () => {
 sourceBlock.style.display = ownWork.checked ? "none" : "block";
 
 /* ---------- Download ---------- */
-downloadBtn.addEventListener("click", () => {
+function validateSourceInfo() {
   if (!ownWork.checked) {
     if (!sourceUrl.value.trim() || !licenseNote.value) {
       showToast("본인 제작이 아닌 경우, 원본 출처 URL과 사용 허가 근거를 입력해야 합니다.", "error");
       sourceUrl.focus();
-      return;
+      return false;
     }
   }
-  const format = exportFormat.value;
-  const ext = format === "image/png" ? "png" : "jpg";
+  return true;
+}
+
+function downloadCurrentCanvas(ratioLabel) {
+  return new Promise((resolve) => {
+    const format = exportFormat.value;
+    const ext = format === "image/png" ? "png" : "jpg";
+    canvas.toBlob((blob) => {
+      if (!blob) { resolve(false); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `card_${ratioLabel.replace(":", "x")}_${Date.now()}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      resolve(true);
+    }, format, 0.95);
+  });
+}
+
+downloadBtn.addEventListener("click", async () => {
+  if (!validateSourceInfo()) return;
   downloadBtn.disabled = true;
-  canvas.toBlob((blob) => {
-    downloadBtn.disabled = false;
-    if (!blob) {
-      showToast("이미지 생성에 실패했습니다.", "error");
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `card_${state.ratio.replace(":", "x")}_${Date.now()}.${ext}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showToast("다운로드했습니다.", "success");
-  }, format, 0.95);
+  const ok = await downloadCurrentCanvas(state.ratio);
+  downloadBtn.disabled = false;
+  showToast(ok ? "다운로드했습니다." : "이미지 생성에 실패했습니다.", ok ? "success" : "error");
+});
+
+downloadAllBtn.addEventListener("click", async () => {
+  if (!validateSourceInfo()) return;
+  const originalRatio = state.ratio;
+  downloadAllBtn.disabled = true;
+  downloadBtn.disabled = true;
+  for (const ratioLabel of Object.keys(RATIOS)) {
+    state.ratio = ratioLabel;
+    ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === ratioLabel));
+    draw();
+    await new Promise((r) => setTimeout(r, 60)); // let canvas repaint before capture
+    await downloadCurrentCanvas(ratioLabel);
+  }
+  state.ratio = originalRatio;
+  ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === originalRatio));
+  draw();
+  downloadAllBtn.disabled = false;
+  downloadBtn.disabled = false;
+  showToast("3개 비율 모두 다운로드했습니다.", "success");
 });
 
 /* ---------- Templates (CRUD, localStorage) ---------- */
@@ -597,6 +689,19 @@ function renderTemplateList() {
       templateName.value = t.name;
     });
 
+    const dupBtn = document.createElement("button");
+    dupBtn.className = "icon-btn";
+    dupBtn.innerHTML = '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.8"/></svg><span>복제</span>';
+    dupBtn.setAttribute("aria-label", `${t.name} 템플릿 복제`);
+    dupBtn.addEventListener("click", () => {
+      const list = loadTemplates();
+      const copy = { ...t, id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name: `${t.name} 사본` };
+      list.push(copy);
+      saveTemplates(list);
+      renderTemplateList();
+      showToast(`"${copy.name}" 템플릿을 만들었습니다.`, "success");
+    });
+
     const delBtn = document.createElement("button");
     delBtn.className = "icon-btn danger";
     delBtn.innerHTML = '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0l1 13a1 1 0 001 1h6a1 1 0 001-1l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>삭제</span>';
@@ -610,29 +715,13 @@ function renderTemplateList() {
       showToast(`"${t.name}" 템플릿을 삭제했습니다.`, "info");
     });
 
-    actions.append(loadBtn, editBtn, delBtn);
+    actions.append(loadBtn, editBtn, dupBtn, delBtn);
     li.append(nameEl, actions);
     templateList.appendChild(li);
   });
 }
 
-function applyTemplate(t) {
-  state.text = t.text;
-  state.posX = t.posX;
-  state.posY = t.posY;
-  state.fontSize = t.fontSize;
-  state.fontFamily = t.fontFamily || "system";
-  state.color = t.color;
-  state.align = t.align;
-  state.stroke = t.stroke !== undefined ? t.stroke : true;
-  state.glow = t.glow !== undefined ? t.glow : false;
-  state.opacity = t.opacity !== undefined ? t.opacity : 100;
-  state.overlayEnabled = t.overlayEnabled !== undefined ? t.overlayEnabled : false;
-  state.overlayDirection = t.overlayDirection || "bottom";
-  state.overlayOpacity = t.overlayOpacity !== undefined ? t.overlayOpacity : 55;
-  state.bgColor = t.bgColor || "#111318";
-  state.ratio = RATIOS[t.ratio] ? t.ratio : "1:1";
-
+function syncControlsFromState() {
   textInput.value = state.text;
   textCharCount.textContent = state.text.length;
   posX.value = state.posX; posXVal.textContent = state.posX;
@@ -650,8 +739,33 @@ function applyTemplate(t) {
   overlayDirection.value = state.overlayDirection;
   overlayOpacity.value = state.overlayOpacity; overlayOpacityVal.textContent = state.overlayOpacity;
   bgColor.value = state.bgColor;
+  imageGrayscale.checked = state.grayscale;
+  imageBrightness.value = state.brightness; imageBrightnessVal.textContent = state.brightness;
+  imageSaturate.value = state.saturate; imageSaturateVal.textContent = state.saturate;
   ratioButtons.forEach((b) => b.classList.toggle("active", b.dataset.ratio === state.ratio));
+}
 
+function applyTemplate(t) {
+  state.text = t.text;
+  state.posX = t.posX;
+  state.posY = t.posY;
+  state.fontSize = t.fontSize;
+  state.fontFamily = t.fontFamily || "system";
+  state.color = t.color;
+  state.align = t.align;
+  state.stroke = t.stroke !== undefined ? t.stroke : true;
+  state.glow = t.glow !== undefined ? t.glow : false;
+  state.opacity = t.opacity !== undefined ? t.opacity : 100;
+  state.overlayEnabled = t.overlayEnabled !== undefined ? t.overlayEnabled : false;
+  state.overlayDirection = t.overlayDirection || "bottom";
+  state.overlayOpacity = t.overlayOpacity !== undefined ? t.overlayOpacity : 55;
+  state.bgColor = t.bgColor || "#111318";
+  state.grayscale = t.grayscale !== undefined ? t.grayscale : false;
+  state.brightness = t.brightness !== undefined ? t.brightness : 100;
+  state.saturate = t.saturate !== undefined ? t.saturate : 100;
+  state.ratio = RATIOS[t.ratio] ? t.ratio : "1:1";
+
+  syncControlsFromState();
   draw();
 }
 
